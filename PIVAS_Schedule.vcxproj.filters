@@ -1,0 +1,246 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="源文件\Grid">
+      <UniqueIdentifier>{000f1e02-93ce-4f9a-a9ab-bf07e01149be}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="PIVAS_Schedule.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PIVAS_ScheduleDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CDlgRestDayManagement.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SchedulCommonStruct.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CDlgRequstRestDay.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CRuleManageDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CDlgInsertOnePerson.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CDiagRetunClassSelect.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CActiveSoftwareDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CPersonRestDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TakeLongHoliday.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CHoliDayRestDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CModifyPersonCanWorkClass.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CAdjustRestSwitchClass.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="PIVAS_Schedule.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PIVAS_ScheduleDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CDlgRestDayManagement.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CDlgRequstRestDay.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\TitleTip.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\InPlaceEdit.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\GridCell.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\GridCellBase.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\NewCellTypes\GridCellCheck.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\NewCellTypes\GridCellCombo.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\NewCellTypes\GridCellDateTime.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\NewCellTypes\GridCellNumeric.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\GridCtrl.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\GridDropTarget.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="GridCtrl_src\NewCellTypes\GridURLCell.cpp">
+      <Filter>源文件\Grid</Filter>
+    </ClCompile>
+    <ClCompile Include="CRuleManageDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CDlgInsertOnePerson.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ExcelFuctions\excel.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CDiagRetunClassSelect.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CActiveSoftwareDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CPersonRestDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TakeLongHoliday.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CHoliDayRestDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CModifyPersonCanWorkClass.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CAdjustRestSwitchClass.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="PIVASSchedule.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\PIVASSchedule.rc2">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\PIVAS_Schedule.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon1.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon2.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon3.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon4.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon5.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon6.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon7.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\ico00001.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\ico00002.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\ico00003.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\toolbar1.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\toolbar2.bmp">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\下一页.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\保存.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\撤销.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\上一页.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\保存模板.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\恢复.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\切换模板.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\查看历史.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\人员假期.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\假期自动调休.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\请长假.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\锁定人员.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\导出excel.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
