@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { BackupSection } from '../components/BackupSection';
 import { ImportPanel } from '../components/ImportPanel';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { formatDateTime, roundDates, shortDate } from '../domain/dates';
@@ -52,6 +53,8 @@ export function DataPage({ data }: { data: AppData }) {
           </div>
           <ImportPanel existing={data} />
         </section>
+
+        <BackupSection data={data} />
       </div>
     </>
   );

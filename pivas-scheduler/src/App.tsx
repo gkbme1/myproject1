@@ -5,7 +5,8 @@ import { SchedulePage } from './components/schedule/SchedulePage';
 import { DataPage } from './pages/DataPage';
 import { FirstRunPage } from './pages/FirstRunPage';
 import { PeoplePage } from './pages/PeoplePage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
+import { RulesPage } from './pages/RulesPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { ShiftsPage } from './pages/ShiftsPage';
 import { StatsPage } from './pages/StatsPage';
 import { loadAppData } from './persistence/storage';
@@ -55,7 +56,8 @@ export function App() {
         {page === 'shifts' && <ShiftsPage data={data} />}
         {page === 'data' && <DataPage data={data} />}
         {page === 'stats' && <StatsPage data={data} />}
-        {(page === 'rules' || page === 'settings') && <PlaceholderPage page={page} />}
+        {page === 'rules' && <RulesPage data={data} />}
+        {page === 'settings' && <SettingsPage data={data} />}
       </main>
       {showResume && <ResumeDialog data={data} />}
     </div>

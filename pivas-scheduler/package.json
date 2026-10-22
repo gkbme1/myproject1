@@ -1,7 +1,7 @@
 {
   "name": "pivas-scheduler",
   "productName": "静配中心排班系统",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "静配中心排班系统（Electron 22，支持 Win7）",
   "main": "dist-electron/main.js",
