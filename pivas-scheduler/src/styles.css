@@ -331,7 +331,7 @@ a {
 }
 .grid-row {
   display: grid;
-  grid-template-columns: 40px 64px 124px repeat(var(--days), minmax(52px, 1fr));
+  grid-template-columns: 34px 104px repeat(var(--days), minmax(46px, 1fr));
   border-bottom: 1px solid #e3e7ec;
 }
 .grid-head {
@@ -340,13 +340,13 @@ a {
   color: var(--muted);
   font-weight: 500;
   position: sticky;
-  top: -14px;
+  top: 0;
   z-index: 5;
 }
 .hc {
-  height: 44px;
+  height: 28px;
   display: flex;
-  flex-direction: column;
+  white-space: nowrap;
   align-items: center;
   justify-content: center;
   border-right: 1px solid #e3e7ec;
@@ -357,7 +357,8 @@ a {
   color: var(--ink-2);
 }
 .fx {
-  height: 34px;
+  height: 24px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -377,7 +378,7 @@ a {
   font-size: 12px;
   font-weight: 700;
   color: var(--ink-2);
-  padding: 6px 12px;
+  padding: 2px 10px;
   border-bottom: 1px solid #e3e7ec;
 }
 .person-tag {
@@ -397,12 +398,12 @@ a {
   all: unset;
   box-sizing: border-box;
   width: 100%;
-  height: 34px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-right: 1px solid #e3e7ec;
-  font-size: 13px;
+  font-size: 12px;
   position: relative;
   cursor: pointer;
 }
@@ -446,14 +447,41 @@ a {
 .k-empty {
   background: #fbfcfd;
 }
+/* 改过的格子整格上醒目的颜色：手工改过=橙，调休=蓝，被联动改班=红 */
+.s-mod-manual {
+  background: #ffb020;
+  color: #3b2300;
+  font-weight: 700;
+}
 .s-requester {
-  background: var(--relax-bg);
-  color: var(--relax);
+  background: #2f6feb;
+  color: #fff;
   font-weight: 700;
 }
 .s-cover {
-  color: var(--danger);
+  background: #e5484d;
+  color: #fff;
   font-weight: 700;
+}
+/* 最近一次操作动到的格子：深色框，刚改完时闪几下 */
+.s-latest {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+  z-index: 2;
+  animation: latest-blink 0.6s ease-in-out 4 alternate;
+}
+@keyframes latest-blink {
+  from {
+    outline-color: var(--ink);
+  }
+  to {
+    outline-color: #ffd23f;
+  }
+}
+/* 有改动的人：姓名格左边一条橙色并加底色 */
+.row-modified .fx.name {
+  background: #fff1d6;
+  box-shadow: inset 4px 0 0 #ffb020;
 }
 .s-selected {
   outline: 2px solid var(--primary);
@@ -811,4 +839,70 @@ a {
   height: 52px;
   font-size: 16px;
   font-weight: 700;
+}
+
+/* ---------- 紧凑布局：一屏尽量多显示人 ---------- */
+.page-header.compact {
+  height: 44px;
+  gap: 12px;
+  padding: 0 14px;
+}
+.page-header.compact h1 {
+  font-size: 16px;
+}
+.header-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 18px;
+  margin-left: 8px;
+}
+.header-tabs .tab {
+  height: 100%;
+  box-sizing: border-box;
+  font-size: 13px;
+}
+.grid-page {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 10px 8px;
+}
+.grid-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.grid-toolbar .chip {
+  height: 24px;
+  padding: 0 10px;
+}
+.grid-toolbar .legend-item {
+  font-size: 12px;
+  margin-left: 8px;
+}
+.toolbar-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--line);
+  margin: 0 4px;
+}
+.grid-page .grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+.grid-inner {
+  min-width: 860px;
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 40;
+  box-shadow: 0 10px 30px rgba(16, 24, 40, 0.3);
+  padding: 8px 12px;
 }

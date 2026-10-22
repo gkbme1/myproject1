@@ -105,9 +105,24 @@ function createWindow() {
     win.maximize();
     win.show();
   });
-  win.webContents.on('before-input-event', (_event, input) => {
-    if (input.type === 'keyDown' && input.key === 'F11') {
+  // F11 全屏；Ctrl + / Ctrl - / Ctrl 0 放大、缩小、还原（屏幕小或想一屏多看几个人时用）
+  win.webContents.on('before-input-event', (event, input) => {
+    if (input.type !== 'keyDown') return;
+    if (input.key === 'F11') {
       win.setFullScreen(!win.isFullScreen());
+      return;
+    }
+    if (!input.control) return;
+    const zoom = win.webContents.getZoomLevel();
+    if (input.key === '=' || input.key === '+') {
+      win.webContents.setZoomLevel(Math.min(zoom + 0.5, 3));
+      event.preventDefault();
+    } else if (input.key === '-') {
+      win.webContents.setZoomLevel(Math.max(zoom - 0.5, -3));
+      event.preventDefault();
+    } else if (input.key === '0') {
+      win.webContents.setZoomLevel(0);
+      event.preventDefault();
     }
   });
 

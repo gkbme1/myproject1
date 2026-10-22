@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 import { isWeekend, shortDate, weekdayName } from '../../domain/dates';
 import { findLeavePlans } from '../../domain/plans';
-import { describeCell } from '../../domain/schedule';
+import { describeCell, lastAppliedIndex } from '../../domain/schedule';
 import type { AppData, CellValue, LevelId, Person, ShiftType } from '../../domain/types';
 import { cellKey } from '../../domain/types';
 import { useAppStore } from '../../store/appStore';
@@ -34,9 +34,17 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
 
   const [levelFilter, setLevelFilter] = useState<LevelId | 'all'>('all');
   const [onlyModified, setOnlyModified] = useState(false);
+  const [onlyModifiedPeople, setOnlyModifiedPeople] = useState(false);
   const [openCell, setOpenCell] = useState<OpenCell | null>(null);
   const [leave, setLeave] = useState<LeaveSession | null>(null);
   const [toast, setToast] = useState('');
+
+  // 提示条几秒后自动消失，不一直占着地方
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(''), 6000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const leaveShifts = useMemo(() => data.shifts.filter((s) => s.category === 'leave').sort((a, b) => a.order - b.order), [data.shifts]);
 
@@ -101,72 +109,63 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
   // 撤销等操作可能让申请人当天已经没有班了，这时就不再显示方案浮窗
   const leaveTarget = leave ? view.shiftOfCell(view.cells[cellKey(leave.personId, view.dates[leave.dayIndex])]) : null;
 
+  // 有改动的人（整行标出来）和最近一次操作动到的格子（闪几下并加深色框）
+  const modifiedPeople = new Set(Array.from(view.modified).map((k) => k.split('|')[0]));
+  const lastIdx = lastAppliedIndex(view.changes);
+  const latestKeys = new Set(lastIdx >= 0 ? view.changes[lastIdx].changes.map((c) => cellKey(c.personId, c.date)) : []);
+  const visibleGroups = groups
+    .map((g) => ({ ...g, people: onlyModifiedPeople ? g.people.filter((p) => modifiedPeople.has(p.id)) : g.people }))
+    .filter((g) => g.people.length > 0);
+
   return (
-    <>
+    <div className="grid-page">
       {openCell && <button className="scrim" aria-label="关闭菜单" onClick={() => setOpenCell(null)} />}
 
-      <div className="menu-row" style={{ gap: 8 }}>
+      <div className="grid-toolbar">
         <button className={'chip' + (levelFilter === 'all' ? ' on' : '')} onClick={() => setLevelFilter('all')}>
-          全部人员
+          全部
         </button>
         {view.groups.map((g) => (
           <button key={g.level.id} className={'chip' + (levelFilter === g.level.id ? ' on' : '')} onClick={() => setLevelFilter(g.level.id)}>
             {g.level.name}
           </button>
         ))}
-        <div className="spacer" />
-        <button className={'chip mark' + (onlyModified ? ' on' : '')} onClick={() => setOnlyModified(!onlyModified)} aria-pressed={onlyModified}>
-          <span className="mark-triangle" />
-          只看改过的格子
+        <span className="toolbar-sep" />
+        <button className={'chip mark' + (onlyModifiedPeople ? ' on' : '')} onClick={() => setOnlyModifiedPeople(!onlyModifiedPeople)} aria-pressed={onlyModifiedPeople}>
+          只看改过的人（{modifiedPeople.size}）
         </button>
-        <span className="muted">点任意格子：调休 / 换班次 / 删除 / 自定义 / 看记录</span>
+        <button className={'chip mark' + (onlyModified ? ' on' : '')} onClick={() => setOnlyModified(!onlyModified)} aria-pressed={onlyModified}>
+          淡化没改的格子
+        </button>
+        <div className="spacer" />
+        <span className="legend-item"><span className="swatch s-mod-manual" />手工改过</span>
+        <span className="legend-item"><span className="swatch s-requester" />调休</span>
+        <span className="legend-item"><span className="swatch s-cover" />被联动改班</span>
+        <span className="legend-item"><span className="swatch" style={{ outline: '2px solid #1b2430', outlineOffset: -2 }} />最近一次</span>
+        <span className="legend-item"><span className="swatch k-empty" />空白格</span>
       </div>
 
-      {toast && (
-        <div className="toast">
-          <span style={{ width: 8, height: 8, borderRadius: 4, background: '#34d399' }} />
-          <span>{toast}</span>
-          <div className="spacer" />
-          <button
-            className="btn"
-            style={{ height: 28, background: 'transparent', color: '#fff', borderColor: '#475467' }}
-            onClick={() => {
-              undo();
-              setToast('已撤销上一步');
-            }}
-          >
-            撤销
-          </button>
-          <button className="btn icon" style={{ background: 'transparent', color: '#fff', borderColor: '#475467' }} aria-label="关闭提示" onClick={() => setToast('')}>
-            ✕
-          </button>
-        </div>
-      )}
-
       <div className="grid" style={gridStyle}>
-        <div style={{ minWidth: 960 }}>
+        <div className="grid-inner">
           <div className="grid-row grid-head">
             <div className="hc">序号</div>
-            <div className="hc">级别</div>
             <div className="hc">姓名</div>
             {view.dates.map((d) => (
               <div key={d} className={'hc' + (isWeekend(d) ? ' weekend' : '')}>
-                <span>{shortDate(d)}</span>
-                <span>{weekdayName(d)}</span>
+                {shortDate(d)} {weekdayName(d).slice(1)}
               </div>
             ))}
           </div>
 
-          {groups.map((g) => (
+          {visibleGroups.map((g) => (
             <div key={g.level.id}>
               <div className="group-row">
                 {g.level.name}（{g.level.shortName}）· {g.people.length} 人
               </div>
               {g.people.map((person) => (
-                <div key={person.id} className="grid-row">
+                <div key={person.id} className={'grid-row' + (modifiedPeople.has(person.id) ? ' row-modified' : '')}>
                   <div className="fx">{view.rowNumber.get(person.id)}</div>
-                  <div className="fx">{g.level.shortName}</div>
-                  <div className="fx name" style={g.level.nameColor ? { color: g.level.nameColor } : undefined}>
+                  <div className="fx name" style={g.level.nameColor ? { color: g.level.nameColor } : undefined} title={g.level.name}>
                     {person.name}
                     {person.status !== 'active' && <span className="person-tag">{person.status === 'noRotate' ? '不轮班' : '冻结'}</span>}
                   </div>
@@ -184,13 +183,14 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
                     let cls = 'cell ';
                     if (previewText) {
                       cls += 's-preview';
+                    } else if (isModified) {
+                      // 改过的格子整格上色，一眼能看出谁被调整了
+                      cls += role === 'requester' ? 's-requester' : role === 'cover' ? 's-cover' : 's-mod-manual';
                     } else {
                       cls += value === null ? 'k-empty' : shift ? 'k-' + shift.category : 'k-custom';
-                      if (role === 'requester') cls += ' s-requester';
-                      if (role === 'cover') cls += ' s-cover';
+                      if (onlyModified) cls += ' s-dim';
                     }
-                    if (isModified) cls += ' s-modified';
-                    else if (onlyModified) cls += ' s-dim';
+                    if (latestKeys.has(key) && !previewText) cls += ' s-latest';
                     if (isOpen || (isLeaveSource && !previewText)) cls += ' s-selected';
 
                     return (
@@ -227,25 +227,29 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
               ))}
             </div>
           ))}
+          {visibleGroups.length === 0 && <div className="muted" style={{ padding: 24, textAlign: 'center' }}>本轮还没有改过的人</div>}
         </div>
       </div>
 
-      <div className="legend">
-        <div className="legend-item"><span className="swatch" style={{ background: '#fff' }} />普通班</div>
-        <div className="legend-item"><span className="swatch" style={{ background: '#e7f4ec' }} />特定 / 特殊班</div>
-        <div className="legend-item"><span className="swatch" style={{ background: '#e8eefa' }} />药师班 A–T</div>
-        <div className="legend-item"><span className="swatch" style={{ background: '#f0eafa' }} />3(10)</div>
-        <div className="legend-item"><span className="swatch" style={{ background: '#334155' }} />夜班 / 帮夜</div>
-        <div className="legend-item">
-          <span className="swatch" style={{ background: '#fff' }}>
-            <span className="mark-triangle" style={{ position: 'absolute', top: 0, right: 0 }} />
-          </span>
-          右上角橙色三角 = 本轮改过（点开可看记录）
+      {toast && (
+        <div className="toast">
+          <span style={{ width: 8, height: 8, borderRadius: 4, background: '#34d399' }} />
+          <span>{toast}</span>
+          <button
+            className="btn"
+            style={{ height: 26, background: 'transparent', color: '#fff', borderColor: '#475467' }}
+            onClick={() => {
+              undo();
+              setToast('已撤销上一步');
+            }}
+          >
+            撤销
+          </button>
+          <button className="btn icon" style={{ height: 26, width: 26, background: 'transparent', color: '#fff', borderColor: '#475467' }} aria-label="关闭提示" onClick={() => setToast('')}>
+            ✕
+          </button>
         </div>
-        <div className="legend-item"><span style={{ color: 'var(--relax)', fontWeight: 700 }}>蓝字</span>= 调休</div>
-        <div className="legend-item"><span style={{ color: 'var(--danger)', fontWeight: 700 }}>红字</span>= 因联动被改</div>
-        <div className="legend-item"><span className="swatch" style={{ background: '#fbfcfd' }} />空白格（可接任何班）</div>
-      </div>
+      )}
 
       {leave && leavePerson && leaveTarget && planResult && (
         <PlanPanel
@@ -265,6 +269,6 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
           onClose={() => setLeave(null)}
         />
       )}
-    </>
+    </div>
   );
 }

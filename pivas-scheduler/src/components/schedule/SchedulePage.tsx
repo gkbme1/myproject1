@@ -34,9 +34,9 @@ export function SchedulePage({ data }: { data: AppData }) {
 
   return (
     <>
-      <header className="page-header">
+      <header className="page-header compact">
         <h1>排班</h1>
-        <div className="menu-row" style={{ gap: 6 }}>
+        <div className="menu-row" style={{ gap: 4 }}>
           <button className="btn icon" aria-label="上一轮" disabled title="切换轮次将在后续版本提供">
             ‹
           </button>
@@ -47,7 +47,15 @@ export function SchedulePage({ data }: { data: AppData }) {
             ›
           </button>
         </div>
+        <nav className="header-tabs" aria-label="排班页面">
+          {tabButton('grid', '排班表')}
+          {tabButton('history', '修改历史', view.changes.length)}
+          {tabButton('requests', '调休申请记录')}
+        </nav>
         <div className="spacer" />
+        <span className="stat">
+          本轮修改 <b style={{ color: '#9a3412' }}>{view.appliedCount}</b>
+        </span>
         <SaveIndicator />
         <button className="btn" onClick={undo} disabled={!canUndo}>
           撤销
@@ -60,32 +68,18 @@ export function SchedulePage({ data }: { data: AppData }) {
         </button>
       </header>
 
-      <div className="tabs">
-        {tabButton('grid', '排班表')}
-        {tabButton('history', '修改历史', view.changes.length)}
-        {tabButton('requests', '调休申请记录')}
-        <div className="spacer" />
-        <span className="stat">
-          违规 <b style={{ color: '#15803d' }}>—</b>
-        </span>
-        <span className="stat">
-          提示 <b style={{ color: '#b45309' }}>—</b>
-        </span>
-        <span className="stat">
-          本轮修改 <b style={{ color: '#9a3412' }}>{view.appliedCount}</b>
-        </span>
-      </div>
-
-      <div className="page-body">
-        {tab === 'grid' && <ScheduleGrid data={data} view={view} />}
-        {tab === 'history' && <HistoryView data={data} view={view} />}
-        {tab === 'requests' && (
-          <div className="card" style={{ padding: 32, textAlign: 'center' }}>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>调休申请记录</div>
-            <div className="muted">按人员汇总本轮的调休、补休申请和还班情况，将在后续版本提供。</div>
-          </div>
-        )}
-      </div>
+      {tab === 'grid' && <ScheduleGrid data={data} view={view} />}
+      {tab !== 'grid' && (
+        <div className="page-body">
+          {tab === 'history' && <HistoryView data={data} view={view} />}
+          {tab === 'requests' && (
+            <div className="card" style={{ padding: 32, textAlign: 'center' }}>
+              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>调休申请记录</div>
+              <div className="muted">按人员汇总本轮的调休、补休申请和还班情况，将在后续版本提供。</div>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
