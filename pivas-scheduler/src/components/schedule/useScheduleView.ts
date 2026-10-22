@@ -28,12 +28,15 @@ export function useScheduleView(data: AppData) {
       for (const ch of cs.changes) modified.add(cellKey(ch.personId, ch.date));
     }
 
+    // 这一轮表里的人，按导入时 Excel 的行序；老数据没有记录就按人员列表
+    const roundPeople = round.personIds
+      ? round.personIds.map((id) => peopleById.get(id)).filter((p): p is Person => !!p)
+      : [...data.people].sort((a, b) => a.order - b.order);
+    const rowNumber = new Map(roundPeople.map((p, i) => [p.id, i + 1]));
+
     const groups: PersonGroup[] = [...data.levels]
       .sort((a, b) => a.order - b.order)
-      .map((level) => ({
-        level,
-        people: data.people.filter((p) => p.levelId === level.id).sort((a, b) => a.order - b.order),
-      }))
+      .map((level) => ({ level, people: roundPeople.filter((p) => p.levelId === level.id) }))
       .filter((g) => g.people.length > 0);
 
     const shiftOfCell = (value: CellValue | undefined): ShiftType | null =>
@@ -43,7 +46,7 @@ export function useScheduleView(data: AppData) {
 
     const appliedCount = changes.filter((c) => !c.undone).length;
 
-    return { round, dates, cells, roles, shiftsById, peopleById, levelsById, changes, modified, groups, shiftOfCell, rowShifts, appliedCount };
+    return { round, dates, cells, roles, shiftsById, peopleById, levelsById, roundPeople, rowNumber, changes, modified, groups, shiftOfCell, rowShifts, appliedCount };
   }, [data]);
 }
 

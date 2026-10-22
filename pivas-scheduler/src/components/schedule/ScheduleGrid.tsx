@@ -164,9 +164,9 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
               </div>
               {g.people.map((person) => (
                 <div key={person.id} className="grid-row">
-                  <div className="fx">{data.people.indexOf(person) + 1}</div>
+                  <div className="fx">{view.rowNumber.get(person.id)}</div>
                   <div className="fx">{g.level.shortName}</div>
-                  <div className="fx name">
+                  <div className="fx name" style={g.level.nameColor ? { color: g.level.nameColor } : undefined}>
                     {person.name}
                     {person.status !== 'active' && <span className="person-tag">{person.status === 'noRotate' ? '不轮班' : '冻结'}</span>}
                   </div>

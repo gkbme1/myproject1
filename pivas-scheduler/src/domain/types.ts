@@ -12,6 +12,7 @@ export interface Level {
   name: string; // 技术员 / 高级技术员 / 第三方 / 药师
   shortName: string; // 级别1 ...
   order: number;
+  nameColor?: string; // 排班表里姓名的颜色，和原来 Excel 里的习惯一致
 }
 
 // 班次分类，决定底色和联动时的优先级
@@ -53,8 +54,9 @@ export interface Person {
   note: string;
 }
 
-// 一个格子的内容：某个班次，或者自定义文字，或者空白（删除班次后留下的可接班空位）
-export type CellValue = { shiftId: ShiftId } | { custom: string } | null;
+// 一个格子的内容：某个班次，或者自定义文字，或者空白（删除班次后留下的可接班空位）。
+// text：导入时表格里的原文和班次名不一样时保留原文（如"调休张"按调休算，界面仍显示"调休张"）
+export type CellValue = { shiftId: ShiftId; text?: string } | { custom: string } | null;
 
 export interface Round {
   id: string;
@@ -63,6 +65,15 @@ export interface Round {
   days: number; // 一轮 14 天
   // 导入或生成时的原始排班，key = cellKey(personId, date)
   base: Record<string, CellValue>;
+  // 这一轮排班表里的人员和顺序（导入时按 Excel 的行序）；没有时按人员列表显示
+  personIds?: PersonId[];
+  source?: RoundSource;
+}
+
+export interface RoundSource {
+  fileName: string;
+  title: string;
+  importedAt: string;
 }
 
 export type ChangeKind =
@@ -114,6 +125,6 @@ export function cellKey(personId: PersonId, date: DateStr): string {
 
 export function sameCell(a: CellValue, b: CellValue): boolean {
   if (a === null || b === null) return a === b;
-  if ('shiftId' in a) return 'shiftId' in b && a.shiftId === b.shiftId;
+  if ('shiftId' in a) return 'shiftId' in b && a.shiftId === b.shiftId && (a.text ?? '') === (b.text ?? '');
   return 'custom' in b && a.custom === b.custom;
 }

@@ -1,4 +1,3 @@
-import { createSeedData } from '../domain/seed';
 import type { AppData } from '../domain/types';
 
 // Electron 里通过 preload 暴露的接口读写 exe 旁边的数据文件；
@@ -20,8 +19,7 @@ declare global {
 const LOCAL_KEY = 'pivas-scheduler-data';
 
 export interface LoadResult {
-  data: AppData;
-  isFirstRun: boolean;
+  data: AppData | null; // null = 第一次使用，还没有数据文件
 }
 
 export async function loadAppData(): Promise<LoadResult> {
@@ -36,13 +34,13 @@ export async function loadAppData(): Promise<LoadResult> {
     }
   }
   if (!raw) {
-    return { data: createSeedData(), isFirstRun: true };
+    return { data: null };
   }
   const parsed = JSON.parse(raw) as AppData;
   if (parsed.schemaVersion !== 1) {
     throw new Error(`数据文件版本 ${parsed.schemaVersion} 不认识，请升级软件`);
   }
-  return { data: parsed, isFirstRun: false };
+  return { data: parsed };
 }
 
 export async function saveAppData(data: AppData): Promise<string> {

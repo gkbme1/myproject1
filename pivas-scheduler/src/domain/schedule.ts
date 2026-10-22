@@ -78,7 +78,7 @@ export function redoCandidateIndex(changes: ChangeSet[]): number {
 export function describeCell(value: CellValue, shiftsById: Map<string, ShiftType>): string {
   if (value === null) return '';
   if ('custom' in value) return value.custom;
-  return shiftsById.get(value.shiftId)?.name ?? '?';
+  return value.text || (shiftsById.get(value.shiftId)?.name ?? '?');
 }
 
 let idCounter = 0;

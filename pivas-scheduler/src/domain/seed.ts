@@ -6,10 +6,10 @@ import { cellKey } from './types';
 // 班次权限按现有 MFC 版本的权限表来（需求文档里有矛盾的地方，先按代码逻辑）。
 
 const LEVELS: Level[] = [
-  { id: 'L1', name: '技术员', shortName: '级别1', order: 1 },
-  { id: 'L2', name: '高级技术员', shortName: '级别2', order: 2 },
-  { id: 'L3', name: '第三方', shortName: '级别3', order: 3 },
-  { id: 'L4', name: '药师', shortName: '级别4', order: 4 },
+  { id: 'L1', name: '技术员', shortName: '级别1', order: 1, nameColor: '#1B2430' },
+  { id: 'L2', name: '高级技术员', shortName: '级别2', order: 2, nameColor: '#D92D20' },
+  { id: 'L3', name: '第三方', shortName: '级别3', order: 3, nameColor: '#A0327A' },
+  { id: 'L4', name: '药师', shortName: '级别4', order: 4, nameColor: '#1B2430' },
 ];
 
 // [名称, 分类, 时段, 可调休, 需还班, 可上的级别]
@@ -53,7 +53,23 @@ const SHIFT_ROWS: ShiftRow[] = [
   ['调休', 'leave', 'none', false, false, 'L1 L2 L3 L4'],
   ['补休', 'leave', 'none', false, false, 'L1 L2 L3 L4'],
   ['补元旦', 'leave', 'none', false, false, 'L1 L2 L3 L4'],
+  ['补五一', 'leave', 'none', false, false, 'L1 L2 L3 L4'],
+  ['补端午', 'leave', 'none', false, false, 'L1 L2 L3 L4'],
 ];
+
+export function createDefaultLevels(): Level[] {
+  return LEVELS.map((l) => ({ ...l }));
+}
+
+export function createDefaultShifts(): ShiftType[] {
+  return buildShifts();
+}
+
+// 需求里点名的人员特例；导入时第一次出现这些人就按这里设置，之后在人员页里改
+export const DEFAULT_PERSON_RULES: Record<string, { status: Person['status']; only?: string[]; banned?: string[]; note: string }> = {
+  方海利: { status: 'noRotate', only: ['QA'], note: '不参与轮班' },
+  代安然: { status: 'noRotate', banned: ['T'], note: '不参与轮班，不上 T' },
+};
 
 function buildShifts(): ShiftType[] {
   return SHIFT_ROWS.map(([name, category, timeSlot, canTakeLeave, needReturn, levels], i) => ({
@@ -65,7 +81,7 @@ function buildShifts(): ShiftType[] {
     needReturn,
     allowedLevels: levels.split(' '),
     order: i + 1,
-    builtIn: category !== 'custom' && name !== '补元旦',
+    builtIn: category !== 'custom' && !/^补(?!休)/.test(name), // 补元旦、补五一这类节日补休可以删
   }));
 }
 

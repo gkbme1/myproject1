@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { NavRail } from './components/NavRail';
 import { ResumeDialog } from './components/ResumeDialog';
 import { SchedulePage } from './components/schedule/SchedulePage';
+import { DataPage } from './pages/DataPage';
+import { FirstRunPage } from './pages/FirstRunPage';
 import { PeoplePage } from './pages/PeoplePage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { ShiftsPage } from './pages/ShiftsPage';
@@ -15,10 +17,11 @@ export function App() {
   const showResume = useAppStore((s) => s.showResume);
   const init = useAppStore((s) => s.init);
   const setLoadError = useAppStore((s) => s.setLoadError);
+  const needsFirstImport = useAppStore((s) => s.needsFirstImport);
 
   useEffect(() => {
     loadAppData()
-      .then(({ data, isFirstRun }) => init(data, isFirstRun))
+      .then(({ data }) => init(data))
       .catch((e) => setLoadError(e instanceof Error ? e.message : String(e)));
   }, [init, setLoadError]);
 
@@ -34,6 +37,10 @@ export function App() {
     );
   }
 
+  if (needsFirstImport) {
+    return <FirstRunPage />;
+  }
+
   if (!data) {
     return <div style={{ padding: 40 }}>正在读取排班数据…</div>;
   }
@@ -45,7 +52,8 @@ export function App() {
         {page === 'schedule' && <SchedulePage data={data} />}
         {page === 'people' && <PeoplePage data={data} />}
         {page === 'shifts' && <ShiftsPage data={data} />}
-        {(page === 'rules' || page === 'stats' || page === 'data' || page === 'settings') && <PlaceholderPage page={page} />}
+        {page === 'data' && <DataPage data={data} />}
+        {(page === 'rules' || page === 'stats' || page === 'settings') && <PlaceholderPage page={page} />}
       </main>
       {showResume && <ResumeDialog data={data} />}
     </div>

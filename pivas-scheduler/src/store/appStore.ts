@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { lastAppliedIndex, makeChangeSet, redoCandidateIndex, roundChanges } from '../domain/schedule';
 import type { AppData, CellChange, ChangeKind, Person, ShiftId, ShiftType } from '../domain/types';
+import { createSeedData } from '../domain/seed';
 import { saveAppData, saveAppDataSync } from '../persistence/storage';
 
 export type PageId = 'schedule' | 'people' | 'shifts' | 'rules' | 'stats' | 'data' | 'settings';
@@ -22,7 +23,11 @@ interface AppState {
   openCellHistory(personId: string, date: string): void;
   clearHistoryFocus(): void;
 
-  init(data: AppData, isFirstRun: boolean): void;
+  needsFirstImport: boolean; // 第一次使用，还没有任何排班数据
+
+  init(data: AppData | null): void;
+  replaceData(data: AppData): void; // 导入 Excel 后整体换成新数据
+  loadSampleData(): void;
   setLoadError(message: string): void;
   setPage(page: PageId): void;
   setScheduleTab(tab: ScheduleTab): void;
@@ -85,6 +90,7 @@ export const useAppStore = create<AppState>((set, get) => {
     showResume: false,
     previousActiveAt: null,
     historyFocus: null,
+    needsFirstImport: false,
 
     openCellHistory(personId, date) {
       set({ page: 'schedule', scheduleTab: 'history', historyFocus: { personId, date } });
@@ -93,13 +99,24 @@ export const useAppStore = create<AppState>((set, get) => {
       set({ historyFocus: null });
     },
 
-    init(data, isFirstRun) {
-      const hasProgress = data.changes.some((c) => c.roundId === data.currentRoundId);
+    init(data) {
+      if (!data) {
+        set({ needsFirstImport: true });
+        return;
+      }
       set({
         data,
         previousActiveAt: data.lastActiveAt,
-        showResume: !isFirstRun && (hasProgress || !!data.lastActiveAt),
+        showResume: !!data.lastActiveAt,
       });
+      scheduleSave();
+    },
+    replaceData(data) {
+      set({ data, needsFirstImport: false, page: 'schedule', scheduleTab: 'grid', historyFocus: null, showResume: false });
+      scheduleSave();
+    },
+    loadSampleData() {
+      set({ data: createSeedData(), needsFirstImport: false, page: 'schedule', scheduleTab: 'grid' });
       scheduleSave();
     },
     setLoadError(message) {

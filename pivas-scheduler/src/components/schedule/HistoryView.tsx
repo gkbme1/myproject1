@@ -100,7 +100,7 @@ export function HistoryView({ data, view }: { data: AppData; view: ScheduleView 
             按人员
             <select className="input" style={{ height: 30 }} value={personFilter} onChange={(e) => setPersonFilter(e.target.value)}>
               <option value="all">全部人员</option>
-              {data.people.map((p) => (
+              {view.roundPeople.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
