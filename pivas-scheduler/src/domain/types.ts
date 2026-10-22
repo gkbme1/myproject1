@@ -106,6 +106,36 @@ export interface ChangeSet {
   changes: CellChange[];
   undone: boolean; // 被撤销后保留在日志里，界面上显示为"已撤销"
   undoneAt?: string;
+  leave?: LeaveInfo; // 调休类修改的附加信息，供"调休申请记录"汇总
+  warnings?: string[]; // 执行时被确认放行的软规则提示
+}
+
+export interface LeaveInfo {
+  personId: PersonId;
+  date: DateStr;
+  leaveShiftId: ShiftId;
+  fromShiftId: ShiftId;
+  coverPersonId: PersonId | null; // 直接接手这个班的人
+  // 还班：3-4/3-5/3-7 调休后要还的班。done=已在本条修改里安排；pending=还没安排
+  returnStatus: 'none' | 'done' | 'pending';
+  returnDate?: DateStr;
+}
+
+// ---------- 排班规则（可在“规则”页里开关、改参数、设拦截或只提示） ----------
+export type RuleSeverity = 'hard' | 'soft'; // hard=违规就拦截；soft=只提示
+
+export type RuleConfig =
+  | { id: string; type: 'maxConsecutiveWork'; enabled: boolean; severity: RuleSeverity; days: number; exemptNight: boolean }
+  | { id: string; type: 'restAfterNight'; enabled: boolean; severity: RuleSeverity }
+  | { id: string; type: 'nightWholeWeek'; enabled: boolean; severity: RuleSeverity; shifts: string[] }
+  | { id: string; type: 'noShiftOnWeekday'; enabled: boolean; severity: RuleSeverity; shift: string; weekdays: number[] }
+  | { id: string; type: 'roundGroupLimit'; enabled: boolean; severity: RuleSeverity; shifts: string[]; max: number }
+  | { id: string; type: 'minRestDays'; enabled: boolean; severity: RuleSeverity; normal: number; withShift: string; withShiftDays: number }
+  | { id: string; type: 'dailyHeadcount'; enabled: boolean; severity: RuleSeverity; shift: string; min: number; max: number }
+  | { id: string; type: 'noConsecutiveShift'; enabled: boolean; severity: RuleSeverity; shift: string };
+
+export interface AppSettings {
+  operator: string; // 记在修改记录里的操作人
 }
 
 export interface AppData {
@@ -117,6 +147,8 @@ export interface AppData {
   currentRoundId: string;
   changes: ChangeSet[];
   lastActiveAt: string | null; // 上次使用时间，用于"欢迎回来"
+  rules?: RuleConfig[]; // 没有时用默认规则
+  settings?: AppSettings;
 }
 
 export function cellKey(personId: PersonId, date: DateStr): string {

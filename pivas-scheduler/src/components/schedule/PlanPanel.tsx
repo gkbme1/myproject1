@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { shortDate, weekdayName } from '../../domain/dates';
-import type { PlanSearchResult } from '../../domain/plans';
+import type { PlanSearchResult, ReturnOption } from '../../domain/plans';
 import type { Person, ShiftType } from '../../domain/types';
 import type { ScheduleView } from './useScheduleView';
 
@@ -15,6 +15,10 @@ interface Props {
   result: PlanSearchResult;
   picked: number;
   note: string;
+  needReturn: boolean;
+  returnOptions: ReturnOption[];
+  returnChoice: number | 'pending';
+  onPickReturn(choice: number | 'pending'): void;
   onPick(index: number): void;
   onChangeLeave(shift: ShiftType): void;
   onChangeNote(note: string): void;
@@ -102,7 +106,7 @@ export function PlanPanel(props: Props) {
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <strong style={{ fontSize: 14 }}>方案 {i + 1}</strong>
               <span className="badge gray">{plan.steps.length} 步</span>
-              <span className="badge ok">规则检查通过</span>
+              {plan.warnings.length > 0 ? <span className="badge warn">{plan.warnings.length} 条提示</span> : <span className="badge ok">规则检查通过</span>}
               {i === 0 && <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--primary)', fontWeight: 500 }}>推荐</span>}
             </span>
             {plan.steps.map((step, k) => (
@@ -117,8 +121,10 @@ export function PlanPanel(props: Props) {
                 </span>
               </span>
             ))}
+            {plan.warnings.length > 0 && <span style={{ fontSize: 12, color: 'var(--warn)' }}>提示（不拦截）：{plan.warnings.join('；')}</span>}
           </button>
         ))}
+
 
         {result.excluded.length > 0 && (
           <details className="muted">
@@ -132,6 +138,25 @@ export function PlanPanel(props: Props) {
         )}
       </div>
 
+      {props.needReturn && result.plans.length > 0 && (
+        <div className="card" style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8, borderColor: '#f7c9a6', background: '#fff7f0', margin: '0 14px', maxHeight: 170, overflowY: 'auto', flexShrink: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>
+            {target.name} 调休后需要还班：{requester.name} 在另一天替 {nameOf(result.plans[picked]?.steps[0].personId ?? '')} 上一个班
+          </div>
+          {props.returnOptions.length === 0 && <div className="muted">本轮里没有合适的还班日期，可以先记为“待还班”，以后再安排。</div>}
+          <div className="menu-row">
+            {props.returnOptions.map((o, i) => (
+              <button key={o.date} className={'chip' + (props.returnChoice === i ? ' on' : '')} onClick={() => props.onPickReturn(i)} title={o.warnings.join('；') || undefined}>
+                {shortDate(o.date)} {weekdayName(o.date)} 上 {view.shiftsById.get(o.shiftId)?.name}
+                {o.warnings.length > 0 ? ' ·有提示' : ''}
+              </button>
+            ))}
+            <button className={'chip' + (props.returnChoice === 'pending' || props.returnOptions.length === 0 ? ' on' : '')} onClick={() => props.onPickReturn('pending')}>
+              先记为待还班
+            </button>
+          </div>
+        </div>
+      )}
       <div className="plan-panel-foot">
         <button className="btn" onClick={props.onClose}>
           取消

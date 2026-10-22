@@ -87,22 +87,25 @@ export function newId(prefix: string): string {
   return `${prefix}${Date.now().toString(36)}${idCounter.toString(36)}`;
 }
 
-export function makeChangeSet(
-  roundId: string,
-  kind: ChangeSet['kind'],
-  title: string,
-  changes: CellChange[],
-  note = '',
-): ChangeSet {
+export interface ChangeExtra {
+  note?: string;
+  operator?: string;
+  leave?: ChangeSet['leave'];
+  warnings?: string[];
+}
+
+export function makeChangeSet(roundId: string, kind: ChangeSet['kind'], title: string, changes: CellChange[], extra: ChangeExtra = {}): ChangeSet {
   return {
     id: newId('c'),
     roundId,
     kind,
     title,
-    note,
+    note: extra.note ?? '',
     at: new Date().toISOString(),
-    operator: '管理员',
+    operator: extra.operator || '管理员',
     changes,
     undone: false,
+    ...(extra.leave ? { leave: extra.leave } : {}),
+    ...(extra.warnings && extra.warnings.length > 0 ? { warnings: extra.warnings } : {}),
   };
 }

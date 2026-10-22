@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 import { isWeekend, shortDate, weekdayName } from '../../domain/dates';
-import { findLeavePlans } from '../../domain/plans';
+import { findLeavePlans, findReturnOptions } from '../../domain/plans';
+import { violationText } from '../../domain/rulesEngine';
 import { describeCell, lastAppliedIndex } from '../../domain/schedule';
 import type { AppData, CellValue, LevelId, Person, ShiftType } from '../../domain/types';
 import { cellKey } from '../../domain/types';
@@ -15,6 +16,7 @@ interface OpenCell {
   personId: string;
   dayIndex: number;
   placement: MenuPlacement;
+  openedAt: number;
 }
 
 interface LeaveSession {
@@ -23,9 +25,8 @@ interface LeaveSession {
   leaveShiftId: string;
   picked: number;
   note: string;
+  returnChoice: number | 'pending'; // 需还班时：选第几个还班日期，或者先记为待还班
 }
-
-const MENU_HEIGHT_GUESS = 440;
 
 export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView }) {
   const commitChange = useAppStore((s) => s.commitChange);
@@ -38,6 +39,8 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
   const [openCell, setOpenCell] = useState<OpenCell | null>(null);
   const [leave, setLeave] = useState<LeaveSession | null>(null);
   const [toast, setToast] = useState('');
+  const [showViolations, setShowViolations] = useState(false);
+  const [focusKey, setFocusKey] = useState('');
 
   // 提示条几秒后自动消失，不一直占着地方
   useEffect(() => {
@@ -50,55 +53,76 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
 
   const planResult = useMemo(() => {
     if (!leave) return null;
-    return findLeavePlans(data, view.cells, view.dates, leave.personId, leave.dayIndex, leave.leaveShiftId);
-  }, [data, view, leave]);
+    return findLeavePlans({ ctx: view.ruleCtx, requesterId: leave.personId, dayIndex: leave.dayIndex, leaveShiftId: leave.leaveShiftId });
+    // 换方案、改备注不需要重新查找
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, leave?.personId, leave?.dayIndex, leave?.leaveShiftId]);
+
+  const pickedPlan = planResult?.plans[leave?.picked ?? 0] ?? null;
+  const leaveTargetShift = leave ? view.shiftOfCell(view.cells[cellKey(leave.personId, view.dates[leave.dayIndex])]) : null;
+  // 3-4 / 3-5 / 3-7 这类需还班的班次：申请人在另一天替接班人上一个班
+  const returnOptions = useMemo(() => {
+    if (!leave || !pickedPlan || !leaveTargetShift?.needReturn) return [];
+    return findReturnOptions(view.ruleCtx, pickedPlan.changes, leave.personId, pickedPlan.steps[0].personId, view.dates[leave.dayIndex]);
+  }, [view, leave, pickedPlan, leaveTargetShift]);
+  const pickedReturn = leave && typeof leave.returnChoice === 'number' ? returnOptions[leave.returnChoice] ?? null : null;
 
   // 方案预览：选中方案会变动的格子，key -> "原→新"
   const preview = useMemo(() => {
     const map = new Map<string, string>();
-    const plan = planResult?.plans[leave?.picked ?? 0];
-    if (!plan) return map;
-    for (const ch of plan.changes) {
+    if (!pickedPlan) return map;
+    for (const ch of [...pickedPlan.changes, ...(pickedReturn?.changes ?? [])]) {
       map.set(cellKey(ch.personId, ch.date), `${describeCell(ch.from, view.shiftsById) || '空'}→${describeCell(ch.to, view.shiftsById)}`);
     }
     return map;
-  }, [planResult, leave, view.shiftsById]);
+  }, [pickedPlan, pickedReturn, view.shiftsById]);
 
   const label = (person: Person, dayIndex: number) => `${person.name} ${shortDate(view.dates[dayIndex])}`;
 
-  const commitCell = (kind: 'manual' | 'delete' | 'custom', person: Person, dayIndex: number, to: CellValue, title: string) => {
+  const commitCell = (kind: 'manual' | 'delete' | 'custom', person: Person, dayIndex: number, to: CellValue, title: string, warnings: string[] = []) => {
     const date = view.dates[dayIndex];
-    commitChange(kind, title, [{ personId: person.id, date, from: view.cells[cellKey(person.id, date)] ?? null, to, role: 'manual' }]);
+    commitChange(kind, title, [{ personId: person.id, date, from: view.cells[cellKey(person.id, date)] ?? null, to, role: 'manual' }], { warnings });
     setOpenCell(null);
-    setToast(`已保存：${title}`);
+    setToast(warnings.length > 0 ? `已保存：${title}。提示：${warnings.join('；')}` : `已保存：${title}`);
+  };
+
+  const locate = (key: string) => {
+    setFocusKey(key);
+    document.querySelector(`[data-cell="${key}"]`)?.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
   };
 
   const onCellClick = (e: MouseEvent<HTMLButtonElement>, personId: string, dayIndex: number) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setLeave(null);
-    setOpenCell({
-      personId,
-      dayIndex,
-      placement: {
-        alignRight: rect.left + 330 > window.innerWidth,
-        openUp: rect.bottom + MENU_HEIGHT_GUESS > window.innerHeight && rect.top > MENU_HEIGHT_GUESS,
-      },
-    });
+    setOpenCell({ personId, dayIndex, placement: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right }, openedAt: Date.now() });
   };
 
   const startLeave = (person: Person, dayIndex: number, leaveShift: ShiftType) => {
     setOpenCell(null);
-    setLeave({ personId: person.id, dayIndex, leaveShiftId: leaveShift.id, picked: 0, note: '' });
+    setLeave({ personId: person.id, dayIndex, leaveShiftId: leaveShift.id, picked: 0, note: '', returnChoice: 0 });
   };
 
   const confirmLeave = () => {
-    if (!leave || !planResult) return;
-    const plan = planResult.plans[leave.picked];
-    if (!plan) return;
+    if (!leave || !pickedPlan || !leaveTargetShift) return;
     const person = view.peopleById.get(leave.personId)!;
     const leaveName = view.shiftsById.get(leave.leaveShiftId)?.name ?? '调休';
-    const title = `${label(person, leave.dayIndex)} ${leaveName}（方案 ${leave.picked + 1}，${plan.steps.length} 步）`;
-    commitChange('leave', title, plan.changes, leave.note);
+    const needReturn = leaveTargetShift.needReturn;
+    const coverId = pickedPlan.steps[0].personId;
+    let title = `${label(person, leave.dayIndex)} ${leaveName}（方案 ${leave.picked + 1}，${pickedPlan.steps.length} 步）`;
+    if (needReturn) title += pickedReturn ? `，${shortDate(pickedReturn.date)} 还班` : '，待还班';
+    commitChange('leave', title, [...pickedPlan.changes, ...(pickedReturn?.changes ?? [])], {
+      note: leave.note,
+      warnings: [...pickedPlan.warnings, ...(pickedReturn?.warnings ?? [])],
+      leave: {
+        personId: leave.personId,
+        date: view.dates[leave.dayIndex],
+        leaveShiftId: leave.leaveShiftId,
+        fromShiftId: leaveTargetShift.id,
+        coverPersonId: coverId,
+        returnStatus: !needReturn ? 'none' : pickedReturn ? 'done' : 'pending',
+        ...(pickedReturn ? { returnDate: pickedReturn.date } : {}),
+      },
+    });
     setLeave(null);
     setToast(`已执行：${title}，记为 1 条修改`);
   };
@@ -107,7 +131,7 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
   const gridStyle = { '--days': view.dates.length } as CSSProperties;
   const leavePerson = leave ? view.peopleById.get(leave.personId) : null;
   // 撤销等操作可能让申请人当天已经没有班了，这时就不再显示方案浮窗
-  const leaveTarget = leave ? view.shiftOfCell(view.cells[cellKey(leave.personId, view.dates[leave.dayIndex])]) : null;
+  const leaveTarget = leaveTargetShift;
 
   // 有改动的人（整行标出来）和最近一次操作动到的格子（闪几下并加深色框）
   const modifiedPeople = new Set(Array.from(view.modified).map((k) => k.split('|')[0]));
@@ -137,6 +161,10 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
         <button className={'chip mark' + (onlyModified ? ' on' : '')} onClick={() => setOnlyModified(!onlyModified)} aria-pressed={onlyModified}>
           淡化没改的格子
         </button>
+        <span className="toolbar-sep" />
+        <button className="stat-button" onClick={() => setShowViolations(!showViolations)} title="点开看具体是哪些人、哪几天">
+          违规 <b style={{ color: view.hardCount > 0 ? 'var(--danger)' : '#15803d' }}>{view.hardCount}</b>　提示 <b style={{ color: '#b45309' }}>{view.softCount}</b>
+        </button>
         <div className="spacer" />
         <span className="legend-item"><span className="swatch s-mod-manual" />手工改过</span>
         <span className="legend-item"><span className="swatch s-requester" />调休</span>
@@ -145,7 +173,14 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
         <span className="legend-item"><span className="swatch k-empty" />空白格</span>
       </div>
 
-      <div className="grid" style={gridStyle}>
+      <div
+        className="grid"
+        style={gridStyle}
+        onScroll={() => {
+          // 表格滚动后菜单就对不上格子了，关掉；刚点开时浏览器把格子滚进视野的那一下不算
+          if (openCell && Date.now() - openCell.openedAt > 300) setOpenCell(null);
+        }}
+      >
         <div className="grid-inner">
           <div className="grid-row grid-head">
             <div className="hc">序号</div>
@@ -190,14 +225,17 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
                       cls += value === null ? 'k-empty' : shift ? 'k-' + shift.category : 'k-custom';
                       if (onlyModified) cls += ' s-dim';
                     }
-                    if (latestKeys.has(key) && !previewText) cls += ' s-latest';
+                    const cellVs = view.cellViolations.get(key);
+                    if (cellVs && !previewText) cls += cellVs.some((v) => v.severity === 'hard') ? ' v-hard' : ' v-soft';
+                    if ((latestKeys.has(key) || focusKey === key) && !previewText) cls += ' s-latest';
                     if (isOpen || (isLeaveSource && !previewText)) cls += ' s-selected';
 
                     return (
                       <div key={date} className="cell-wrap">
                         <button
                           className={cls}
-                          title={isModified ? `${text} · 本轮改过，点开看记录` : text || '空白格'}
+                          data-cell={key}
+                          title={[isModified ? `${text} · 本轮改过，点开看记录` : text || '空白格', ...(cellVs ?? []).map((v) => v.message)].join('\n')}
                           aria-label={`${person.name} ${shortDate(date)} ${text || '空白'}${isModified ? '，有修改记录' : ''}`}
                           onClick={(e) => onCellClick(e, person.id, dayIndex)}
                         >
@@ -211,7 +249,7 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
                             dayIndex={dayIndex}
                             placement={openCell.placement}
                             onStartLeave={(s) => startLeave(person, dayIndex, s)}
-                            onPickShift={(s) => commitCell('manual', person, dayIndex, { shiftId: s.id }, `${label(person, dayIndex)} 改为 ${s.name}`)}
+                            onPickShift={(s, warns) => commitCell('manual', person, dayIndex, { shiftId: s.id }, `${label(person, dayIndex)} 改为 ${s.name}`, warns)}
                             onSetCustom={(t) => commitCell('custom', person, dayIndex, { custom: t }, `${label(person, dayIndex)} 填写“${t}”`)}
                             onDelete={() => commitCell('delete', person, dayIndex, null, `${label(person, dayIndex)} 删除班次`)}
                             onOpenHistory={() => {
@@ -230,6 +268,40 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
           {visibleGroups.length === 0 && <div className="muted" style={{ padding: 24, textAlign: 'center' }}>本轮还没有改过的人</div>}
         </div>
       </div>
+
+      {showViolations && (
+        <section className="violation-panel" aria-label="规则检查结果">
+          <div className="plan-panel-head" style={{ cursor: 'default' }}>
+            <strong style={{ fontSize: 14 }}>规则检查：违规 {view.hardCount}，提示 {view.softCount}</strong>
+            <div className="spacer" />
+            <button className="btn icon" aria-label="关闭" onClick={() => setShowViolations(false)}>
+              ✕
+            </button>
+          </div>
+          <div style={{ overflowY: 'auto', flex: 1 }}>
+            {view.violations.length === 0 && <div className="muted" style={{ padding: 16 }}>没有发现问题</div>}
+            {[...view.violations]
+              .sort((a, b) => (a.severity === b.severity ? 0 : a.severity === 'hard' ? -1 : 1))
+              .map((v, i) => (
+                <button
+                  key={i}
+                  className="violation-item"
+                  onClick={() => v.personId && v.dates[0] && locate(cellKey(v.personId, v.dates[0]))}
+                  title={v.personId ? '点击定位到表格里的格子' : undefined}
+                >
+                  <span className={'badge ' + (v.severity === 'hard' ? 'red' : 'warn')} style={{ marginRight: 6 }}>
+                    {v.severity === 'hard' ? '违规' : '提示'}
+                  </span>
+                  {violationText(v, view.peopleById)}
+                  {v.dates.length > 0 && <span className="muted"> · {v.dates.slice(0, 4).map(shortDate).join('、')}{v.dates.length > 4 ? '…' : ''}</span>}
+                </button>
+              ))}
+          </div>
+          <div className="muted" style={{ padding: '8px 12px', borderTop: '1px solid var(--line-soft)' }}>
+            “违规”的规则在改班时会拦截；“提示”只提醒。可以在左侧“规则”里调整。
+          </div>
+        </section>
+      )}
 
       {toast && (
         <div className="toast">
@@ -262,7 +334,11 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
           result={planResult}
           picked={leave.picked}
           note={leave.note}
-          onPick={(i) => setLeave({ ...leave, picked: i })}
+          returnOptions={returnOptions}
+          needReturn={!!leaveTarget.needReturn}
+          returnChoice={leave.returnChoice}
+          onPickReturn={(c) => setLeave({ ...leave, returnChoice: c })}
+          onPick={(i) => setLeave({ ...leave, picked: i, returnChoice: 0 })}
           onChangeLeave={(s) => setLeave({ ...leave, leaveShiftId: s.id })}
           onChangeNote={(note) => setLeave({ ...leave, note })}
           onConfirm={confirmLeave}

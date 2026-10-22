@@ -539,9 +539,10 @@ a {
   z-index: 15;
 }
 .cell-menu {
-  position: absolute;
-  top: calc(100% + 4px);
+  position: fixed;
   z-index: 20;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
   width: 320px;
   background: #fff;
   border: 1px solid #c9d2dd;
@@ -552,16 +553,6 @@ a {
   flex-direction: column;
   gap: 10px;
   text-align: left;
-}
-.cell-menu.left {
-  left: 0;
-}
-.cell-menu.right {
-  right: 0;
-}
-.cell-menu.up {
-  top: auto;
-  bottom: calc(100% + 4px);
 }
 .menu-title {
   font-size: 13px;
@@ -687,6 +678,8 @@ a {
   user-select: none;
 }
 .plan-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -905,4 +898,74 @@ a {
   z-index: 40;
   box-shadow: 0 10px 30px rgba(16, 24, 40, 0.3);
   padding: 8px 12px;
+}
+
+/* 可以选但会触发提示规则的班次：右上角橙点 */
+.shift-choice.warn {
+  position: relative;
+}
+.shift-choice.warn::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: #f79009;
+}
+/* 违反规则的格子：拦截类红色斜角，提示类橙色斜角（左下角，不和改动标记冲突） */
+.v-hard::after,
+.v-soft::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  border-bottom: 9px solid #d92d20;
+  border-right: 9px solid transparent;
+}
+.v-soft::after {
+  border-bottom-color: #f79009;
+}
+.stat-button {
+  all: unset;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.stat-button:hover {
+  background: #f2f4f7;
+}
+.stat-button b {
+  font-size: 14px;
+}
+.violation-panel {
+  position: fixed;
+  right: 12px;
+  top: 96px;
+  bottom: 12px;
+  width: 380px;
+  z-index: 35;
+  background: #fff;
+  border: 1px solid #c9d2dd;
+  border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(16, 24, 40, 0.22);
+  display: flex;
+  flex-direction: column;
+}
+.violation-item {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.violation-item:hover {
+  background: #f7f9fb;
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { lastAppliedIndex, makeChangeSet, redoCandidateIndex, roundChanges } from '../domain/schedule';
-import type { AppData, CellChange, ChangeKind, Person, ShiftId, ShiftType } from '../domain/types';
+import type { ChangeExtra } from '../domain/schedule';
+import type { AppData, AppSettings, CellChange, ChangeKind, Person, Round, RuleConfig, ShiftId, ShiftType } from '../domain/types';
 import { createSeedData } from '../domain/seed';
 import { saveAppData, saveAppDataSync } from '../persistence/storage';
 
@@ -33,7 +34,14 @@ interface AppState {
   setScheduleTab(tab: ScheduleTab): void;
   dismissResume(): void;
 
-  commitChange(kind: ChangeKind, title: string, changes: CellChange[], note?: string): void;
+  commitChange(kind: ChangeKind, title: string, changes: CellChange[], extra?: ChangeExtra): void;
+  updateRules(rules: RuleConfig[]): void;
+  updateSettings(patch: Partial<AppSettings>): void;
+  switchRound(roundId: string): void;
+  addRound(round: Round): void;
+  addPerson(person: Person, addToCurrentRound: boolean): void;
+  setRoundPersonOrder(personIds: string[]): void;
+  restoreData(data: AppData): void;
   undo(): void;
   redo(): void;
 
@@ -132,12 +140,45 @@ export const useAppStore = create<AppState>((set, get) => {
       set({ showResume: false });
     },
 
-    commitChange(kind, title, changes, note = '') {
+    commitChange(kind, title, changes, extra = {}) {
       if (changes.length === 0) return;
       updateData((data) => ({
         ...data,
-        changes: [...data.changes, makeChangeSet(data.currentRoundId, kind, title, changes, note)],
+        changes: [...data.changes, makeChangeSet(data.currentRoundId, kind, title, changes, { operator: data.settings?.operator, ...extra })],
       }));
+    },
+    updateRules(rules) {
+      updateData((data) => ({ ...data, rules }));
+    },
+    updateSettings(patch) {
+      updateData((data) => ({ ...data, settings: { operator: '管理员', ...data.settings, ...patch } }));
+    },
+    switchRound(roundId) {
+      updateData((data) => ({ ...data, currentRoundId: roundId }));
+      set({ historyFocus: null });
+    },
+    addRound(round) {
+      updateData((data) => ({ ...data, rounds: [...data.rounds, round], currentRoundId: round.id }));
+      set({ page: 'schedule', scheduleTab: 'grid', historyFocus: null });
+    },
+    addPerson(person, addToCurrentRound) {
+      updateData((data) => ({
+        ...data,
+        people: [...data.people, person],
+        rounds: addToCurrentRound
+          ? data.rounds.map((r) => (r.id === data.currentRoundId && r.personIds ? { ...r, personIds: [...r.personIds, person.id] } : r))
+          : data.rounds,
+      }));
+    },
+    setRoundPersonOrder(personIds) {
+      updateData((data) => ({
+        ...data,
+        rounds: data.rounds.map((r) => (r.id === data.currentRoundId ? { ...r, personIds } : r)),
+      }));
+    },
+    restoreData(data) {
+      set({ data, page: 'schedule', scheduleTab: 'grid', historyFocus: null, showResume: false });
+      scheduleSave();
     },
 
     undo() {

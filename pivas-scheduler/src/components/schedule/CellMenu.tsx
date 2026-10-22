@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { shortDate, weekdayName } from '../../domain/dates';
-import { checkShiftForCell, leaveBlockedReason } from '../../domain/rules';
+import { canPersonWork, leaveBlockedReason } from '../../domain/rules';
+import { checkChanges, violationText } from '../../domain/rulesEngine';
 import { cellHistory, describeCell } from '../../domain/schedule';
 import type { AppData, Person, ShiftType } from '../../domain/types';
 import { cellKey } from '../../domain/types';
 import type { ScheduleView } from './useScheduleView';
 
+// 被点的格子在窗口里的位置；菜单贴着它弹出，并保证整个菜单都在窗口里
 export interface MenuPlacement {
-  alignRight: boolean;
-  openUp: boolean;
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
 }
+
+const MENU_WIDTH = 320;
+const MARGIN = 8;
 
 interface Props {
   data: AppData;
@@ -18,7 +25,7 @@ interface Props {
   dayIndex: number;
   placement: MenuPlacement;
   onStartLeave(leaveShift: ShiftType): void;
-  onPickShift(shift: ShiftType): void;
+  onPickShift(shift: ShiftType, warnings: string[]): void;
   onSetCustom(text: string): void;
   onDelete(): void;
   onOpenHistory(): void;
@@ -27,11 +34,22 @@ interface Props {
 export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave, onPickShift, onSetCustom, onDelete, onOpenHistory }: Props) {
   const [customText, setCustomText] = useState('');
   const [editingCustom, setEditingCustom] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: placement.bottom + 4, left: placement.left, visible: false });
+
+  // 先渲染出来量高度，再决定往下还是往上弹，避免菜单被窗口边缘截掉
+  useLayoutEffect(() => {
+    const h = ref.current?.offsetHeight ?? 0;
+    let top = placement.bottom + 4;
+    if (top + h > window.innerHeight - MARGIN) top = Math.max(MARGIN, Math.min(placement.top - h - 4, window.innerHeight - MARGIN - h));
+    let left = placement.left;
+    if (left + MENU_WIDTH > window.innerWidth - MARGIN) left = Math.max(MARGIN, placement.right - MENU_WIDTH);
+    setPos({ top, left, visible: true });
+  }, [placement, editingCustom]);
 
   const date = view.dates[dayIndex];
   const value = view.cells[cellKey(person.id, date)] ?? null;
   const current = view.shiftOfCell(value);
-  const row = view.rowShifts(person.id);
 
   const history = cellHistory(data, view.round.id, person.id, date);
   const changedTimes = history.length - 1;
@@ -39,21 +57,26 @@ export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave
   const leaveShifts = data.shifts.filter((s) => s.category === 'leave').sort((a, b) => a.order - b.order);
   const leaveWhy = leaveBlockedReason(current);
 
-  // 只列出这个人按级别和特例能上的班次；规则不允许的照样列出来但置灰，并说明原因
+  // 只列出这个人按级别能上的班次；违反拦截规则的置灰并说明原因，违反提示规则的可以选但标出来
   const choices = data.shifts
     .filter((s) => s.category !== 'leave' && s.allowedLevels.includes(person.levelId))
     .sort((a, b) => a.order - b.order)
     .map((s) => {
-      const testRow = [...row];
-      testRow[dayIndex] = s;
-      return { shift: s, why: s.id === current?.id ? '' : checkShiftForCell(person, testRow, dayIndex, s) };
+      if (s.id === current?.id) return { shift: s, why: '', warns: [] as string[] };
+      const special = canPersonWork(person, s);
+      if (special) return { shift: s, why: special, warns: [] as string[] };
+      const result = checkChanges(view.ruleCtx, [{ personId: person.id, date, from: value, to: { shiftId: s.id }, role: 'manual' }]);
+      return {
+        shift: s,
+        why: result.hard[0]?.message ?? '',
+        warns: result.soft.map((v) => violationText(v, view.peopleById)),
+      };
     });
+  const existing = view.cellViolations.get(cellKey(person.id, date)) ?? [];
   const blockedReasons = Array.from(new Set(choices.map((c) => c.why).filter(Boolean)));
 
-  const cls = 'cell-menu ' + (placement.alignRight ? 'right' : 'left') + (placement.openUp ? ' up' : '');
-
   return (
-    <div className={cls} role="dialog" aria-label="格子操作">
+    <div ref={ref} className="cell-menu" role="dialog" aria-label="格子操作" style={{ top: pos.top, left: pos.left, visibility: pos.visible ? 'visible' : 'hidden' }}>
       <div className="menu-title">
         {person.name} · {shortDate(date)} {weekdayName(date)} · 当前：{describeCell(value, view.shiftsById) || '空白'}
       </div>
@@ -83,6 +106,12 @@ export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave
         <div className="muted">原始排班，本轮没有改过</div>
       )}
 
+      {existing.length > 0 && (
+        <div className="menu-note" style={{ color: existing.some((v) => v.severity === 'hard') ? 'var(--danger)' : 'var(--warn)', background: '#fff7ed' }}>
+          这个格子目前的问题：{existing.map((v) => v.message).join('；')}
+        </div>
+      )}
+
       <div className="menu-section">申请休息</div>
       <div className="menu-row">
         {leaveShifts.map((s, i) => (
@@ -95,19 +124,20 @@ export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave
 
       <div className="menu-section">换成其他班次（只列出这个级别能上的）</div>
       <div className="menu-row">
-        {choices.map(({ shift, why }) => (
+        {choices.map(({ shift, why, warns }) => (
           <button
             key={shift.id}
-            className={'shift-choice' + (shift.id === current?.id ? ' current' : '')}
+            className={'shift-choice' + (shift.id === current?.id ? ' current' : '') + (warns.length > 0 ? ' warn' : '')}
             disabled={!!why}
-            title={why || `换成 ${shift.name}`}
-            onClick={() => shift.id !== current?.id && onPickShift(shift)}
+            title={why || (warns.length > 0 ? `可以换，但有提示：${warns.join('；')}` : `换成 ${shift.name}`)}
+            onClick={() => shift.id !== current?.id && onPickShift(shift, warns)}
           >
             {shift.name}
           </button>
         ))}
       </div>
       {blockedReasons.length > 0 && <div className="menu-note">划线的班次不能选：{blockedReasons.join('；')}</div>}
+      {choices.some((c) => c.warns.length > 0) && <div className="menu-note">带橙点的班次可以选，但会有规则提示（鼠标停在上面能看到）</div>}
 
       <div style={{ borderTop: '1px solid var(--line-soft)', paddingTop: 6, display: 'flex', flexDirection: 'column' }}>
         {editingCustom ? (

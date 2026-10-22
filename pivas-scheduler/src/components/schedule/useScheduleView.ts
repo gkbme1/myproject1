@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { roundDates } from '../../domain/dates';
+import { buildRuleContext, evaluate } from '../../domain/rulesEngine';
+import type { Violation } from '../../domain/rulesEngine';
 import { cellLastRole, currentCells, getRound, roundChanges } from '../../domain/schedule';
 import type { AppData, CellValue, Level, Person, ShiftType } from '../../domain/types';
 import { cellKey } from '../../domain/types';
@@ -46,7 +48,43 @@ export function useScheduleView(data: AppData) {
 
     const appliedCount = changes.filter((c) => !c.undone).length;
 
-    return { round, dates, cells, roles, shiftsById, peopleById, levelsById, roundPeople, rowNumber, changes, modified, groups, shiftOfCell, rowShifts, appliedCount };
+    // 按当前规则检查整张表：违规（拦截类）和提示（只提示类）
+    const ruleCtx = buildRuleContext(data, cells, round.id);
+    const violations = evaluate(ruleCtx);
+    const hardCount = violations.filter((v) => v.severity === 'hard').length;
+    const softCount = violations.length - hardCount;
+    // 格子 -> 这个格子涉及的违规（每日人数这类不针对人的不标在格子上）
+    const cellViolations = new Map<string, Violation[]>();
+    for (const v of violations) {
+      if (!v.personId) continue;
+      for (const d of v.dates) {
+        const k = cellKey(v.personId, d);
+        cellViolations.set(k, [...(cellViolations.get(k) ?? []), v]);
+      }
+    }
+
+    return {
+      round,
+      dates,
+      cells,
+      roles,
+      shiftsById,
+      peopleById,
+      levelsById,
+      roundPeople,
+      rowNumber,
+      changes,
+      modified,
+      groups,
+      shiftOfCell,
+      rowShifts,
+      appliedCount,
+      ruleCtx,
+      violations,
+      hardCount,
+      softCount,
+      cellViolations,
+    };
   }, [data]);
 }
 
