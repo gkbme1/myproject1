@@ -115,7 +115,7 @@ export function PlanPanel(props: Props) {
                 <span className="badge gray">
                   {levelOf(step.personId)} · {step.fromLabel}
                 </span>
-                <span style={{ color: '#98a2b3' }}>→</span>
+                <span style={{ color: '#475467' }}>→</span>
                 <span>
                   接{nameOf(step.takesFromPersonId)}的 <b>{view.shiftsById.get(step.takesShiftId)?.name}</b>
                 </span>

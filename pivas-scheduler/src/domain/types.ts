@@ -151,6 +151,11 @@ export interface AppData {
   settings?: AppSettings;
 }
 
+// 级别的显示名：级别在前、名称在括号里，如“级别1（技术员）”
+export function levelLabel(level: Pick<Level, 'name' | 'shortName'>): string {
+  return `${level.shortName}（${level.name}）`;
+}
+
 export function cellKey(personId: PersonId, date: DateStr): string {
   return `${personId}|${date}`;
 }

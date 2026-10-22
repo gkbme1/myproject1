@@ -4,7 +4,7 @@ import { useScheduleView } from '../components/schedule/useScheduleView';
 import { roundDates, shortDate } from '../domain/dates';
 import { isWork } from '../domain/rulesEngine';
 import type { AppData, LevelId } from '../domain/types';
-import { cellKey } from '../domain/types';
+import { cellKey, levelLabel } from '../domain/types';
 
 const COLUMNS = '40px 90px 90px repeat(9, minmax(56px, 1fr)) minmax(180px, 2fr)';
 const LIMITED = ['3-4', '3-5', '3-6', '3-7'];
@@ -61,7 +61,7 @@ export function StatsPage({ data }: { data: AppData }) {
           </button>
           {view.groups.map((g) => (
             <button key={g.level.id} className={'chip' + (levelFilter === g.level.id ? ' on' : '')} onClick={() => setLevelFilter(g.level.id)}>
-              {g.level.name}
+              {levelLabel(g.level)}
             </button>
           ))}
           <div className="spacer" />
@@ -88,7 +88,7 @@ export function StatsPage({ data }: { data: AppData }) {
               <div key={r.person.id} className="table-row" style={{ gridTemplateColumns: COLUMNS, fontSize: 13, minHeight: 30 }}>
                 <span className="muted">{view.rowNumber.get(r.person.id)}</span>
                 <span style={{ fontWeight: 500, color: view.levelsById.get(r.person.levelId)?.nameColor }}>{r.person.name}</span>
-                <span className="muted">{view.levelsById.get(r.person.levelId)?.name}</span>
+                <span className="muted">{view.levelsById.get(r.person.levelId)?.shortName}</span>
                 <span className="center">{r.work}</span>
                 <span className="center" style={warnCell(r.off + r.leave < 4)}>{r.off}</span>
                 <span className="center">{r.leave || ''}</span>

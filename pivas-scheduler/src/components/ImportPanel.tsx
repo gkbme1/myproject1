@@ -1,3 +1,4 @@
+import { levelLabel } from '../domain/types';
 import { useMemo, useRef, useState } from 'react';
 import { addDays, shortDate, weekdayName } from '../domain/dates';
 import { createDefaultLevels, createDefaultShifts } from '../domain/seed';
@@ -79,7 +80,7 @@ export function ImportPanel({ existing }: { existing: AppData | null }) {
     <select className="input" style={{ height: 30 }} value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
       {levels.map((l) => (
         <option key={l.id} value={l.id}>
-          {l.name}（{l.shortName}）
+          {levelLabel(l)}
         </option>
       ))}
     </select>
@@ -149,7 +150,7 @@ export function ImportPanel({ existing }: { existing: AppData | null }) {
             <div className="menu-row" style={{ gap: 14 }}>
               {levels.map((l) => (
                 <span key={l.id} style={{ fontSize: 13 }}>
-                  {l.name} <b>{resolved.filter((r) => r.levelId === l.id).length}</b> 人
+                  {levelLabel(l)} <b>{resolved.filter((r) => r.levelId === l.id).length}</b> 人
                 </span>
               ))}
               <div className="spacer" />

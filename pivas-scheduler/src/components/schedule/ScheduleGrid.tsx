@@ -5,7 +5,7 @@ import { findLeavePlans, findReturnOptions } from '../../domain/plans';
 import { violationText } from '../../domain/rulesEngine';
 import { describeCell, lastAppliedIndex } from '../../domain/schedule';
 import type { AppData, CellValue, LevelId, Person, ShiftType } from '../../domain/types';
-import { cellKey } from '../../domain/types';
+import { cellKey, levelLabel } from '../../domain/types';
 import { useAppStore } from '../../store/appStore';
 import { CellMenu } from './CellMenu';
 import type { MenuPlacement } from './CellMenu';
@@ -151,7 +151,7 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
         </button>
         {view.groups.map((g) => (
           <button key={g.level.id} className={'chip' + (levelFilter === g.level.id ? ' on' : '')} onClick={() => setLevelFilter(g.level.id)}>
-            {g.level.name}
+            {levelLabel(g.level)}
           </button>
         ))}
         <span className="toolbar-sep" />
@@ -195,12 +195,12 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
           {visibleGroups.map((g) => (
             <div key={g.level.id}>
               <div className="group-row">
-                {g.level.name}（{g.level.shortName}）· {g.people.length} 人
+                {levelLabel(g.level)} · {g.people.length} 人
               </div>
               {g.people.map((person) => (
                 <div key={person.id} className={'grid-row' + (modifiedPeople.has(person.id) ? ' row-modified' : '')}>
                   <div className="fx">{view.rowNumber.get(person.id)}</div>
-                  <div className="fx name" style={g.level.nameColor ? { color: g.level.nameColor } : undefined} title={g.level.name}>
+                  <div className="fx name" style={g.level.nameColor ? { color: g.level.nameColor } : undefined} title={levelLabel(g.level)}>
                     {person.name}
                     {person.status !== 'active' && <span className="person-tag">{person.status === 'noRotate' ? '不轮班' : '冻结'}</span>}
                   </div>
@@ -249,7 +249,16 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
                             dayIndex={dayIndex}
                             placement={openCell.placement}
                             onStartLeave={(s) => startLeave(person, dayIndex, s)}
-                            onPickShift={(s, warns) => commitCell('manual', person, dayIndex, { shiftId: s.id }, `${label(person, dayIndex)} 改为 ${s.name}`, warns)}
+                            onPickShift={(s, warns, violations) => {
+                              const title = `${label(person, dayIndex)} 改为 ${s.name}`;
+                              if (violations.length > 0) {
+                                const ok = window.confirm(`${title} 会违反下面的规则：\n\n${violations.map((v) => '· ' + v).join('\n')}\n\n确定仍要这样排吗？这次改动会在修改记录里标成“违规放行”。`);
+                                if (!ok) return;
+                                commitCell('manual', person, dayIndex, { shiftId: s.id }, title + '（违规放行）', [...violations.map((v) => '违规放行：' + v), ...warns]);
+                                return;
+                              }
+                              commitCell('manual', person, dayIndex, { shiftId: s.id }, title, warns);
+                            }}
                             onSetCustom={(t) => commitCell('custom', person, dayIndex, { custom: t }, `${label(person, dayIndex)} 填写“${t}”`)}
                             onDelete={() => commitCell('delete', person, dayIndex, null, `${label(person, dayIndex)} 删除班次`)}
                             onOpenHistory={() => {

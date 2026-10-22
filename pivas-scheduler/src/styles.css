@@ -1,8 +1,8 @@
 :root {
   --ink: #1b2430;
   --ink-2: #344054;
-  --muted: #475467;
-  --faint: #98a2b3;
+  --muted: #344054; /* 次要文字：仍要在白底上看得清 */
+  --faint: #475467; /* 休息格、禁用按钮等最淡的文字，也保证对比度 */
   --line: #d9dee5;
   --line-soft: #eef1f5;
   --bg: #eef1f5;
@@ -121,7 +121,7 @@ a {
   width: 64px;
   height: 60px;
   border-radius: 8px;
-  color: #c7d5e8;
+  color: #e4ecf6;
   font-size: 12px;
   cursor: pointer;
 }
@@ -438,7 +438,7 @@ a {
 .k-off,
 .k-leave {
   background: #fff;
-  color: var(--faint);
+  color: #475467;
 }
 .k-custom {
   background: #f2f4f7;
@@ -764,10 +764,10 @@ a {
   margin-top: 4px;
 }
 .timeline-item.undone {
-  opacity: 0.55;
+  opacity: 0.7;
 }
 .old-value {
-  color: #667085;
+  color: #475467;
   text-decoration: line-through;
 }
 .new-value {
@@ -968,4 +968,18 @@ a {
 }
 .violation-item:hover {
   background: #f7f9fb;
+}
+
+/* “仍要排”时，违反规则但被放开的班次：红框 */
+.shift-choice.forced {
+  border-color: #d92d20;
+  color: #b42318;
+  background: #fef3f2;
+}
+/* 格子文字加粗一点，远看也清楚 */
+.cell {
+  font-weight: 500;
+}
+.k-normal {
+  color: #101828;
 }

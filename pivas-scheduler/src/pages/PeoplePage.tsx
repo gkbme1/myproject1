@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { getRound, newId } from '../domain/schedule';
 import type { AppData, Person, PersonStatus, ShiftId } from '../domain/types';
+import { levelLabel } from '../domain/types';
 import { useAppStore } from '../store/appStore';
 
 const STATUS_NAMES: Record<PersonStatus, string> = {
@@ -169,7 +170,7 @@ export function PeoplePage({ data }: { data: AppData }) {
             <select className="input" value={newLevel} onChange={(e) => setNewLevel(e.target.value)} aria-label="新人员级别">
               {levels.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.name}
+                  {levelLabel(l)}
                 </option>
               ))}
             </select>
@@ -184,7 +185,7 @@ export function PeoplePage({ data }: { data: AppData }) {
               return (
                 <div key={level.id}>
                   <div className="group-row" style={{ fontSize: 13, padding: '6px 12px' }}>
-                    {level.name}（{level.shortName}）<span className="muted" style={{ fontWeight: 400 }}> {people.length} 人</span>
+                    {levelLabel(level)}<span className="muted" style={{ fontWeight: 400 }}> {people.length} 人</span>
                   </div>
                   {people.map((p) => row(p, !search.trim()))}
                 </div>
@@ -216,7 +217,7 @@ export function PeoplePage({ data }: { data: AppData }) {
               <select className="input" value={selected.levelId} onChange={(e) => updatePerson(selected.id, { levelId: e.target.value })}>
                 {levels.map((l) => (
                   <option key={l.id} value={l.id}>
-                    {l.name}（{l.shortName}）
+                    {levelLabel(l)}
                   </option>
                 ))}
               </select>

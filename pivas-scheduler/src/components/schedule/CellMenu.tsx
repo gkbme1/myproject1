@@ -25,7 +25,8 @@ interface Props {
   dayIndex: number;
   placement: MenuPlacement;
   onStartLeave(leaveShift: ShiftType): void;
-  onPickShift(shift: ShiftType, warnings: string[]): void;
+  // violations：选了违反拦截规则的班次（用户打开了“仍要排”）时，违反了哪些规则
+  onPickShift(shift: ShiftType, warnings: string[], violations: string[]): void;
   onSetCustom(text: string): void;
   onDelete(): void;
   onOpenHistory(): void;
@@ -34,6 +35,7 @@ interface Props {
 export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave, onPickShift, onSetCustom, onDelete, onOpenHistory }: Props) {
   const [customText, setCustomText] = useState('');
   const [editingCustom, setEditingCustom] = useState(false);
+  const [force, setForce] = useState(false); // 仍要排：允许选违反拦截规则的班次
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: placement.bottom + 4, left: placement.left, visible: false });
 
@@ -62,14 +64,16 @@ export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave
     .filter((s) => s.category !== 'leave' && s.allowedLevels.includes(person.levelId))
     .sort((a, b) => a.order - b.order)
     .map((s) => {
-      if (s.id === current?.id) return { shift: s, why: '', warns: [] as string[] };
+      if (s.id === current?.id) return { shift: s, why: '', warns: [] as string[], forcible: false, hard: [] as string[] };
       const special = canPersonWork(person, s);
-      if (special) return { shift: s, why: special, warns: [] as string[] };
+      if (special) return { shift: s, why: special, warns: [] as string[], forcible: false, hard: [] as string[] };
       const result = checkChanges(view.ruleCtx, [{ personId: person.id, date, from: value, to: { shiftId: s.id }, role: 'manual' }]);
       return {
         shift: s,
         why: result.hard[0]?.message ?? '',
         warns: result.soft.map((v) => violationText(v, view.peopleById)),
+        forcible: result.hard.length > 0, // 规则拦截的可以“仍要排”；级别、人员特例不行
+        hard: result.hard.map((v) => violationText(v, view.peopleById)),
       };
     });
   const existing = view.cellViolations.get(cellKey(person.id, date)) ?? [];
@@ -91,7 +95,7 @@ export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave
             {history.map((h, i) => (
               <span key={i} style={{ display: 'contents' }}>
                 <span className={'history-value' + (i === history.length - 1 ? ' last' : '')}>{describeCell(h.value, view.shiftsById) || '空白'}</span>
-                {i < history.length - 1 && <span style={{ color: '#98a2b3', fontSize: 12 }}>→</span>}
+                {i < history.length - 1 && <span style={{ color: '#475467', fontSize: 12 }}>→</span>}
               </span>
             ))}
           </div>
@@ -124,19 +128,27 @@ export function CellMenu({ data, view, person, dayIndex, placement, onStartLeave
 
       <div className="menu-section">换成其他班次（只列出这个级别能上的）</div>
       <div className="menu-row">
-        {choices.map(({ shift, why, warns }) => (
+        {choices.map(({ shift, why, warns, forcible, hard }) => (
           <button
             key={shift.id}
-            className={'shift-choice' + (shift.id === current?.id ? ' current' : '') + (warns.length > 0 ? ' warn' : '')}
-            disabled={!!why}
-            title={why || (warns.length > 0 ? `可以换，但有提示：${warns.join('；')}` : `换成 ${shift.name}`)}
-            onClick={() => shift.id !== current?.id && onPickShift(shift, warns)}
+            className={
+              'shift-choice' + (shift.id === current?.id ? ' current' : '') + (warns.length > 0 ? ' warn' : '') + (force && forcible ? ' forced' : '')
+            }
+            disabled={!!why && !(force && forcible)}
+            title={why ? (force && forcible ? `会违反：${hard.join('；')}` : why) : warns.length > 0 ? `可以换，但有提示：${warns.join('；')}` : `换成 ${shift.name}`}
+            onClick={() => shift.id !== current?.id && onPickShift(shift, warns, force && forcible ? hard : [])}
           >
             {shift.name}
           </button>
         ))}
       </div>
-      {blockedReasons.length > 0 && <div className="menu-note">划线的班次不能选：{blockedReasons.join('；')}</div>}
+      {blockedReasons.length > 0 && !force && <div className="menu-note">划线的班次不能选：{blockedReasons.join('；')}</div>}
+      {choices.some((c) => c.forcible) && (
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12, lineHeight: 1.5, color: force ? 'var(--danger)' : 'var(--ink-2)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+          仍要排（违反规则的班次也能选，选的时候会再确认一次，并记入修改记录）
+        </label>
+      )}
       {choices.some((c) => c.warns.length > 0) && <div className="menu-note">带橙点的班次可以选，但会有规则提示（鼠标停在上面能看到）</div>}
 
       <div style={{ borderTop: '1px solid var(--line-soft)', paddingTop: 6, display: 'flex', flexDirection: 'column' }}>

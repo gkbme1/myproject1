@@ -77,7 +77,7 @@ export function HistoryView({ data, view }: { data: AppData; view: ScheduleView 
                   <span style={{ fontSize: 20, fontWeight: 700 }}>{describeCell(h.value, view.shiftsById) || '空白'}</span>
                   <span className="muted" style={{ fontSize: 11 }}>{h.at ? formatDateTime(h.at) : '导入时'}{i === focusHistory.length - 1 ? ' · 当前值' : ''}</span>
                 </div>
-                {i < focusHistory.length - 1 && <span style={{ color: '#98a2b3' }}>→</span>}
+                {i < focusHistory.length - 1 && <span style={{ color: '#475467' }}>→</span>}
               </span>
             ))}
           </div>
@@ -146,6 +146,11 @@ export function HistoryView({ data, view }: { data: AppData; view: ScheduleView 
                   {cs.operator}
                   {cs.note ? ` · 备注：${cs.note}` : ''}
                 </div>
+                {cs.warnings && cs.warnings.length > 0 && (
+                  <div style={{ fontSize: 12, color: cs.warnings.some((w) => w.startsWith('违规放行')) ? 'var(--danger)' : 'var(--warn)' }}>
+                    {cs.warnings.join('；')}
+                  </div>
+                )}
               </div>
             </div>
           ))}

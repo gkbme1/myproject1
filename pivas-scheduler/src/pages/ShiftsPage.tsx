@@ -1,3 +1,4 @@
+import { levelLabel } from '../domain/types';
 import { useState } from 'react';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { newId } from '../domain/schedule';
@@ -101,7 +102,7 @@ export function ShiftsPage({ data }: { data: AppData }) {
               <span className="center">需还班</span>
               {levels.map((l) => (
                 <span key={l.id} className="center">
-                  {l.name}
+                  {levelLabel(l)}
                 </span>
               ))}
             </div>
@@ -126,7 +127,7 @@ export function ShiftsPage({ data }: { data: AppData }) {
                 </span>
                 {levels.map((l) => (
                   <span key={l.id} className="center">
-                    <input type="checkbox" checked={s.allowedLevels.includes(l.id)} onChange={() => toggleLevel(s, l.id)} aria-label={`${l.name}可上${s.name}`} />
+                    <input type="checkbox" checked={s.allowedLevels.includes(l.id)} onChange={() => toggleLevel(s, l.id)} aria-label={`${levelLabel(l)}可上${s.name}`} />
                   </span>
                 ))}
               </div>
