@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -81,6 +81,47 @@ function registerIpc() {
   });
 
   ipcMain.handle('data:dir', () => dataDir);
+
+  // 导出 Excel、导出数据文件：弹出“另存为”，返回保存的路径（取消返回 null）
+  ipcMain.handle('file:saveAs', async (event, defaultName: string, content: Uint8Array) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const ext = path.extname(defaultName).slice(1);
+    const options = {
+      defaultPath: path.join(app.getPath('documents'), defaultName),
+      filters: ext === 'xlsx' ? [{ name: 'Excel 文件', extensions: ['xlsx'] }] : [{ name: '数据文件', extensions: [ext || 'json'] }],
+    };
+    const result = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) return null;
+    fs.writeFileSync(result.filePath, Buffer.from(content));
+    return result.filePath;
+  });
+
+  // 自动备份列表（新的在前）
+  ipcMain.handle('backup:list', () => {
+    const backupDir = path.join(dataDir, 'backups');
+    if (!fs.existsSync(backupDir)) return [];
+    return fs
+      .readdirSync(backupDir)
+      .filter((name) => name.endsWith('.json'))
+      .map((name) => {
+        const stat = fs.statSync(path.join(backupDir, name));
+        return { name, size: stat.size, modifiedAt: stat.mtime.toISOString() };
+      })
+      .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
+  });
+
+  // 恢复备份：先把现在的数据另存一份，再把备份内容交给界面
+  ipcMain.handle('backup:restore', (_event, name: string) => {
+    const backupDir = path.join(dataDir, 'backups');
+    const source = path.join(backupDir, path.basename(name));
+    const content = fs.readFileSync(source, 'utf8');
+    const currentFile = path.join(dataDir, DATA_FILE_NAME);
+    if (fs.existsSync(currentFile)) {
+      const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+      fs.copyFileSync(currentFile, path.join(backupDir, `before-restore-${stamp}.json`));
+    }
+    return content;
+  });
 }
 
 function createWindow() {

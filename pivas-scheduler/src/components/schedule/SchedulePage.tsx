@@ -1,3 +1,5 @@
+import { ExportDialog } from './ExportDialog';
+import { RequestsView } from './RequestsView';
 import { useState } from 'react';
 import { sortedRounds } from '../../domain/rounds';
 import { NextRoundDialog } from './NextRoundDialog';
@@ -25,6 +27,7 @@ export function SchedulePage({ data }: { data: AppData }) {
   const redo = useAppStore((s) => s.redo);
   const switchRound = useAppStore((s) => s.switchRound);
   const [showNext, setShowNext] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const rounds = sortedRounds(data);
   const roundPos = rounds.findIndex((r) => r.id === view.round.id);
 
@@ -81,22 +84,18 @@ export function SchedulePage({ data }: { data: AppData }) {
         <button className="btn" onClick={redo} disabled={!canRedo}>
           重做
         </button>
-        <button className="btn" disabled title="导出 Excel 将在后续版本提供">
+        <button className="btn" onClick={() => setShowExport(true)}>
           导出 Excel
         </button>
       </header>
 
       {showNext && <NextRoundDialog data={data} onClose={() => setShowNext(false)} />}
+      {showExport && <ExportDialog data={data} onClose={() => setShowExport(false)} />}
       {tab === 'grid' && <ScheduleGrid key={view.round.id} data={data} view={view} />}
       {tab !== 'grid' && (
         <div className="page-body">
           {tab === 'history' && <HistoryView data={data} view={view} />}
-          {tab === 'requests' && (
-            <div className="card" style={{ padding: 32, textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>调休申请记录</div>
-              <div className="muted">按人员汇总本轮的调休、补休申请和还班情况，将在后续版本提供。</div>
-            </div>
-          )}
+          {tab === 'requests' && <RequestsView view={view} />}
         </div>
       )}
     </>

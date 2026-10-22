@@ -6,4 +6,7 @@ contextBridge.exposeInMainWorld('pivasApi', {
   saveData: (content: string): Promise<{ savedAt: string }> => ipcRenderer.invoke('data:save', content),
   saveDataSync: (content: string): boolean => ipcRenderer.sendSync('data:saveSync', content),
   getDataDir: (): Promise<string> => ipcRenderer.invoke('data:dir'),
+  saveFile: (defaultName: string, content: Uint8Array): Promise<string | null> => ipcRenderer.invoke('file:saveAs', defaultName, content),
+  listBackups: (): Promise<{ name: string; size: number; modifiedAt: string }[]> => ipcRenderer.invoke('backup:list'),
+  restoreBackup: (name: string): Promise<string> => ipcRenderer.invoke('backup:restore', name),
 });

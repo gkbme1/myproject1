@@ -7,6 +7,7 @@ import { FirstRunPage } from './pages/FirstRunPage';
 import { PeoplePage } from './pages/PeoplePage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { ShiftsPage } from './pages/ShiftsPage';
+import { StatsPage } from './pages/StatsPage';
 import { loadAppData } from './persistence/storage';
 import { useAppStore } from './store/appStore';
 
@@ -53,7 +54,8 @@ export function App() {
         {page === 'people' && <PeoplePage data={data} />}
         {page === 'shifts' && <ShiftsPage data={data} />}
         {page === 'data' && <DataPage data={data} />}
-        {(page === 'rules' || page === 'stats' || page === 'settings') && <PlaceholderPage page={page} />}
+        {page === 'stats' && <StatsPage data={data} />}
+        {(page === 'rules' || page === 'settings') && <PlaceholderPage page={page} />}
       </main>
       {showResume && <ResumeDialog data={data} />}
     </div>

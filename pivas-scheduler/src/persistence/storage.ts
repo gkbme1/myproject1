@@ -8,6 +8,15 @@ interface PivasApi {
   saveData(content: string): Promise<{ savedAt: string }>;
   saveDataSync(content: string): boolean;
   getDataDir(): Promise<string>;
+  saveFile(defaultName: string, content: Uint8Array): Promise<string | null>;
+  listBackups(): Promise<BackupInfo[]>;
+  restoreBackup(name: string): Promise<string>;
+}
+
+export interface BackupInfo {
+  name: string;
+  size: number;
+  modifiedAt: string;
 }
 
 declare global {
@@ -61,4 +70,13 @@ export function saveAppDataSync(data: AppData): void {
   } else {
     window.localStorage.setItem(LOCAL_KEY, content);
   }
+}
+
+// 读备份文件内容并检查是不是本软件的数据
+export function parseDataFile(raw: string): AppData {
+  const parsed = JSON.parse(raw) as AppData;
+  if (parsed.schemaVersion !== 1 || !Array.isArray(parsed.rounds) || !Array.isArray(parsed.people)) {
+    throw new Error('这个文件不是排班系统的数据文件');
+  }
+  return parsed;
 }
