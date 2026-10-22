@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { sortedRounds } from '../../domain/rounds';
+import { NextRoundDialog } from './NextRoundDialog';
 import { parseDate, roundDates } from '../../domain/dates';
 import { lastAppliedIndex, redoCandidateIndex } from '../../domain/schedule';
 import type { AppData } from '../../domain/types';
@@ -20,6 +23,10 @@ export function SchedulePage({ data }: { data: AppData }) {
   const setTab = useAppStore((s) => s.setScheduleTab);
   const undo = useAppStore((s) => s.undo);
   const redo = useAppStore((s) => s.redo);
+  const switchRound = useAppStore((s) => s.switchRound);
+  const [showNext, setShowNext] = useState(false);
+  const rounds = sortedRounds(data);
+  const roundPos = rounds.findIndex((r) => r.id === view.round.id);
 
   const dates = roundDates(view.round.startDate, view.round.days);
   const canUndo = lastAppliedIndex(view.changes) >= 0;
@@ -37,15 +44,26 @@ export function SchedulePage({ data }: { data: AppData }) {
       <header className="page-header compact">
         <h1>排班</h1>
         <div className="menu-row" style={{ gap: 4 }}>
-          <button className="btn icon" aria-label="上一轮" disabled title="切换轮次将在后续版本提供">
+          <button className="btn icon" aria-label="上一轮" disabled={roundPos <= 0} title="上一轮" onClick={() => switchRound(rounds[roundPos - 1].id)}>
             ‹
           </button>
           <span style={{ fontWeight: 500 }}>
             第 {view.round.index} 轮 · {dateWithWeekday(dates[0])} ~ {dateWithWeekday(dates[dates.length - 1]).slice(5)}
           </span>
-          <button className="btn icon" aria-label="下一轮" disabled title="切换轮次将在后续版本提供">
+          <button
+            className="btn icon"
+            aria-label="下一轮"
+            title={roundPos < rounds.length - 1 ? '下一轮' : '生成下一轮'}
+            onClick={() => (roundPos < rounds.length - 1 ? switchRound(rounds[roundPos + 1].id) : setShowNext(true))}
+          >
             ›
           </button>
+          {roundPos === rounds.length - 1 && (
+            <button className="btn" style={{ height: 28 }} onClick={() => setShowNext(true)}>
+              生成下一轮
+            </button>
+          )}
+          {roundPos < rounds.length - 1 && <span className="badge warn">不是最新一轮</span>}
         </div>
         <nav className="header-tabs" aria-label="排班页面">
           {tabButton('grid', '排班表')}
@@ -68,7 +86,8 @@ export function SchedulePage({ data }: { data: AppData }) {
         </button>
       </header>
 
-      {tab === 'grid' && <ScheduleGrid data={data} view={view} />}
+      {showNext && <NextRoundDialog data={data} onClose={() => setShowNext(false)} />}
+      {tab === 'grid' && <ScheduleGrid key={view.round.id} data={data} view={view} />}
       {tab !== 'grid' && (
         <div className="page-body">
           {tab === 'history' && <HistoryView data={data} view={view} />}
