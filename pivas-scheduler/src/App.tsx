@@ -4,6 +4,7 @@ import { ResumeDialog } from './components/ResumeDialog';
 import { SchedulePage } from './components/schedule/SchedulePage';
 import { DataPage } from './pages/DataPage';
 import { FirstRunPage } from './pages/FirstRunPage';
+import { LeavePage } from './pages/LeavePage';
 import { PeoplePage } from './pages/PeoplePage';
 import { RulesPage } from './pages/RulesPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -52,6 +53,7 @@ export function App() {
       <NavRail />
       <main className="app-main">
         {page === 'schedule' && <SchedulePage data={data} />}
+        {page === 'leave' && <LeavePage data={data} />}
         {page === 'people' && <PeoplePage data={data} />}
         {page === 'shifts' && <ShiftsPage data={data} />}
         {page === 'data' && <DataPage data={data} />}

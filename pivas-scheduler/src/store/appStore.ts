@@ -1,12 +1,14 @@
 import { create } from 'zustand';
-import { lastAppliedIndex, makeChangeSet, redoCandidateIndex, roundChanges } from '../domain/schedule';
+import { newApplication, processApplications } from '../domain/applications';
+import { currentCells, lastAppliedIndex, makeChangeSet, redoCandidateIndex, roundChanges } from '../domain/schedule';
+import { cellKey } from '../domain/types';
 import type { ChangeExtra } from '../domain/schedule';
 import type { AppData, AppSettings, CellChange, ChangeKind, Person, Round, RuleConfig, ShiftId, ShiftType } from '../domain/types';
 import { createSeedData } from '../domain/seed';
 import { saveAppData, saveAppDataSync } from '../persistence/storage';
 
-export type PageId = 'schedule' | 'people' | 'shifts' | 'rules' | 'stats' | 'data' | 'settings';
-export type ScheduleTab = 'grid' | 'history' | 'requests';
+export type PageId = 'schedule' | 'leave' | 'people' | 'shifts' | 'rules' | 'stats' | 'data' | 'settings';
+export type ScheduleTab = 'grid' | 'history' | 'requests' | 'applications';
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface AppState {
@@ -38,7 +40,12 @@ interface AppState {
   updateRules(rules: RuleConfig[]): void;
   updateSettings(patch: Partial<AppSettings>): void;
   switchRound(roundId: string): void;
-  addRound(round: Round): void;
+  addRound(round: Round, processApplications?: boolean): { approved: number; rejected: number };
+  addApplication(personId: string, date: string, note: string): void;
+  removeApplication(id: string): void;
+  clearApplications(): void;
+  setApplicationType(id: string, leaveShiftId: string): void;
+  setLeaveInitial(values: Record<string, number>): void;
   addPerson(person: Person, addToCurrentRound: boolean): void;
   setRoundPersonOrder(personIds: string[]): void;
   restoreData(data: AppData): void;
@@ -157,9 +164,48 @@ export const useAppStore = create<AppState>((set, get) => {
       updateData((data) => ({ ...data, currentRoundId: roundId }));
       set({ historyFocus: null });
     },
-    addRound(round) {
-      updateData((data) => ({ ...data, rounds: [...data.rounds, round], currentRoundId: round.id }));
-      set({ page: 'schedule', scheduleTab: 'grid', historyFocus: null });
+    addRound(round, processApps = false) {
+      let counts = { approved: 0, rejected: 0 };
+      updateData((data) => {
+        const next = { ...data, rounds: [...data.rounds, round], currentRoundId: round.id };
+        if (!processApps) return next;
+        const result = processApplications(next, round.id);
+        counts = { approved: result.approved, rejected: result.rejected };
+        return result.data;
+      });
+      const processed = counts.approved + counts.rejected > 0;
+      set({ page: 'schedule', scheduleTab: processed ? 'applications' : 'grid', historyFocus: null });
+      return counts;
+    },
+    addApplication(personId, date, note) {
+      updateData((data) => ({ ...data, leaveApplications: [...(data.leaveApplications ?? []), newApplication(personId, date, note)] }));
+    },
+    removeApplication(id) {
+      updateData((data) => ({ ...data, leaveApplications: (data.leaveApplications ?? []).filter((a) => a.id !== id) }));
+    },
+    clearApplications() {
+      updateData((data) => ({ ...data, leaveApplications: [] }));
+    },
+    setApplicationType(id, leaveShiftId) {
+      // 改调休类型：申请记录和排班表里申请人那一格一起改，改动记入修改记录
+      updateData((data) => {
+        const app = (data.leaveApplications ?? []).find((a) => a.id === id);
+        if (!app) return data;
+        const apps = (data.leaveApplications ?? []).map((a) => (a.id === id ? { ...a, leaveShiftId } : a));
+        const cs = data.changes.find((c) => c.id === app.changeSetId);
+        if (!cs || cs.undone) return { ...data, leaveApplications: apps };
+        const cells = currentCells(data, cs.roundId);
+        const from = cells[cellKey(app.personId, app.date)] ?? null;
+        const typeName = data.shifts.find((s) => s.id === leaveShiftId)?.name ?? '';
+        const person = data.people.find((p) => p.id === app.personId)?.name ?? '';
+        const change = makeChangeSet(cs.roundId, 'manual', `${person} ${app.date.slice(5).replace('-', '/')} 调休类型改为 ${typeName}`, [
+          { personId: app.personId, date: app.date, from, to: { shiftId: leaveShiftId }, role: 'requester' },
+        ], { operator: data.settings?.operator });
+        return { ...data, leaveApplications: apps, changes: [...data.changes, change] };
+      });
+    },
+    setLeaveInitial(values) {
+      updateData((data) => ({ ...data, leaveInitial: { ...data.leaveInitial, ...values } }));
     },
     addPerson(person, addToCurrentRound) {
       updateData((data) => ({

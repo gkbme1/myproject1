@@ -94,11 +94,18 @@ export function findLeavePlans(opts: SearchOptions): PlanSearchResult {
     }
   }
   const others = ctx.people.filter((p) => p.id !== requesterId && !lockedBy.has(p.id));
-  // 链条末端：当天调休 / 补休，或者删除班次留下的空白格
+  // 链条末端（万能格）：删除班次留下的空白格、当天调休 / 补休、当天休息的人
+  // 收尾优先级：空白格 > 调休 / 补休 > 休（拉休息的人来顶班会占掉他一个休息日，放最后）
+  const endRank = (p: Person) => {
+    const v = valueOf(p.id);
+    if (v === null) return 0;
+    return shiftOf(p.id)?.category === 'leave' ? 1 : 2;
+  };
   const freePeople = others.filter((p) => {
     const v = valueOf(p.id);
     if (v === null) return true;
-    return shiftOf(p.id)?.category === 'leave';
+    const c = shiftOf(p.id)?.category;
+    return c === 'leave' || c === 'off';
   });
   // 链条中间：当天在上班，而且自己的班允许被换走（夜班、3(10)、需还班的班不参与联动）
   const workingPeople = others.filter((p) => {
@@ -166,7 +173,7 @@ export function findLeavePlans(opts: SearchOptions): PlanSearchResult {
         }
         const movers = [...partial.chain.slice(1), f];
         found.push({
-          rank: [step, result.soft.length > 0 ? 1 : 0, levelRank(f), ...partial.ownShifts.slice(1).map((s) => CATEGORY_RANK[s.category] ?? 2), ...movers.map(levelRank)],
+          rank: [step, result.soft.length > 0 ? 1 : 0, endRank(f), levelRank(f), ...partial.ownShifts.slice(1).map((s) => CATEGORY_RANK[s.category] ?? 2), ...movers.map(levelRank)],
           steps: [
             ...partial.chain.slice(1).map((p, i) => ({
               personId: p.id,

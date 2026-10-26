@@ -11,6 +11,12 @@ const ICONS: Record<PageId, ReactNode> = {
       <path d="M3 9h18M8 2v4M16 2v4M8 13h3M13 13h3M8 17h3" />
     </svg>
   ),
+  leave: (
+    <svg {...svgProps}>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9h18M8 2v4M16 2v4M8.5 14.5l2.5 2.5 4.5-5" />
+    </svg>
+  ),
   people: (
     <svg {...svgProps}>
       <circle cx="9" cy="8" r="3.5" />
@@ -52,6 +58,7 @@ const ICONS: Record<PageId, ReactNode> = {
 
 export const PAGE_NAMES: Record<PageId, string> = {
   schedule: '排班',
+  leave: '假期',
   people: '人员',
   shifts: '班次',
   rules: '规则',
@@ -60,7 +67,7 @@ export const PAGE_NAMES: Record<PageId, string> = {
   settings: '设置',
 };
 
-const TOP_ITEMS: PageId[] = ['schedule', 'people', 'shifts', 'rules', 'stats', 'data'];
+const TOP_ITEMS: PageId[] = ['schedule', 'leave', 'people', 'shifts', 'rules', 'stats', 'data'];
 
 export function NavRail() {
   const page = useAppStore((s) => s.page);

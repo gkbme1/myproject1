@@ -9,6 +9,10 @@ import { useAppStore } from '../../store/appStore';
 export function NextRoundDialog({ data, onClose }: { data: AppData; onClose(): void }) {
   const addRound = useAppStore((s) => s.addRound);
   const [useModified, setUseModified] = useState(true);
+  const startDate = addDays(getRound(data).startDate, getRound(data).days);
+  const endDate = addDays(startDate, getRound(data).days - 1);
+  const pendingApps = (data.leaveApplications ?? []).filter((a) => a.status === 'pending' && a.date >= startDate && a.date <= endDate);
+  const [processApps, setProcessApps] = useState(true);
   const current = getRound(data);
   const result = useMemo(() => generateNextRound(data, { useModified }), [data, useModified]);
   const peopleById = new Map(data.people.map((p) => [p.id, p]));
@@ -56,6 +60,12 @@ export function NextRoundDialog({ data, onClose }: { data: AppData; onClose(): v
           </div>
         </div>
 
+        {pendingApps.length > 0 && (
+          <label className="menu-row" style={{ fontSize: 13, fontWeight: 500 }}>
+            <input type="checkbox" checked={processApps} onChange={(e) => setProcessApps(e.target.checked)} />
+            按登记先后自动安排“下一轮调休申请表”里的 {pendingApps.length} 条申请
+          </label>
+        )}
         <div className="menu-row" style={{ justifyContent: 'flex-end' }}>
           <button className="btn" onClick={onClose}>
             取消
@@ -63,7 +73,7 @@ export function NextRoundDialog({ data, onClose }: { data: AppData; onClose(): v
           <button
             className="btn primary"
             onClick={() => {
-              addRound(result.round);
+              addRound(result.round, processApps && pendingApps.length > 0);
               onClose();
             }}
           >

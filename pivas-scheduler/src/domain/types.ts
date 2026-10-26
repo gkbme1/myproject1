@@ -108,6 +108,7 @@ export interface ChangeSet {
   undone: boolean; // 被撤销后保留在日志里，界面上显示为"已撤销"
   undoneAt?: string;
   leave?: LeaveInfo; // 调休类修改的附加信息，供"调休申请记录"汇总
+  applicationId?: string; // 由“下一轮调休申请表”自动安排时，对应的申请
   warnings?: string[]; // 执行时被确认放行的软规则提示
 }
 
@@ -150,6 +151,23 @@ export interface AppData {
   lastActiveAt: string | null; // 上次使用时间，用于"欢迎回来"
   rules?: RuleConfig[]; // 没有时用默认规则
   settings?: AppSettings;
+  leaveApplications?: LeaveApplication[]; // 下一轮调休申请表（登记后在生成下一轮时自动处理）
+  leaveInitial?: Record<PersonId, number>; // 每人的初始假期天数（手工维护）
+}
+
+// 下一轮调休申请：按登记时间先后处理
+export interface LeaveApplication {
+  id: string;
+  personId: PersonId;
+  date: DateStr;
+  registeredAt: string; // 登记时间，决定处理顺序
+  note: string;
+  status: 'pending' | 'approved' | 'rejected';
+  processedAt?: string;
+  reason?: string; // 被拒绝的原因
+  summary?: string; // 通过时的顶班安排说明
+  changeSetId?: string; // 通过时自动生成的修改记录
+  leaveShiftId?: string; // 调休类型，默认“调休”，排班人员可改
 }
 
 // 级别的显示名：级别在前、名称在括号里，如“级别1（技术员）”

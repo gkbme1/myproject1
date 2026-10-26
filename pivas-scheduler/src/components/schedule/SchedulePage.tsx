@@ -1,3 +1,4 @@
+import { ApplicationsView } from './ApplicationsView';
 import { ExportDialog } from './ExportDialog';
 import { RequestsView } from './RequestsView';
 import { useState } from 'react';
@@ -71,7 +72,8 @@ export function SchedulePage({ data }: { data: AppData }) {
         <nav className="header-tabs" aria-label="排班页面">
           {tabButton('grid', '排班表')}
           {tabButton('history', '修改历史', view.changes.length)}
-          {tabButton('requests', '调休申请记录')}
+          {tabButton('requests', '本轮调休记录')}
+          {tabButton('applications', '下一轮调休申请', (data.leaveApplications ?? []).filter((a) => a.status === 'pending').length || undefined)}
         </nav>
         <div className="spacer" />
         <span className="stat">
@@ -96,6 +98,7 @@ export function SchedulePage({ data }: { data: AppData }) {
         <div className="page-body">
           {tab === 'history' && <HistoryView data={data} view={view} />}
           {tab === 'requests' && <RequestsView view={view} />}
+          {tab === 'applications' && <ApplicationsView data={data} />}
         </div>
       )}
     </>
