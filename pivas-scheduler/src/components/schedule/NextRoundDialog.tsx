@@ -27,7 +27,7 @@ export function NextRoundDialog({ data, onClose }: { data: AppData; onClose(): v
         </div>
         <div className="menu-note" style={{ fontSize: 12, lineHeight: 1.8 }}>
           按“班不动、人滚动”生成：每个级别里，排班表每一行的班次规律不变，人往下挪一行，最后一个人挪到第一行。
-          {locked.length > 0 && <>不轮班 / 冻结的人留在原来那一行：{locked.map((p) => p!.name).join('、')}。</>}
+          {locked.length > 0 && <>锁行 / 冻结的人留在原来那一行：{locked.map((p) => p!.name).join('、')}。</>}
           调休、补休这些个人的休假不跟着行走，新一轮里会变成空白格，需要再安排。
         </div>
 

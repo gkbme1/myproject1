@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 import { SaveIndicator } from '../components/SaveIndicator';
 import { getRound, newId } from '../domain/schedule';
 import type { AppData, Person, PersonStatus, ShiftId } from '../domain/types';
@@ -7,7 +8,7 @@ import { useAppStore } from '../store/appStore';
 
 const STATUS_NAMES: Record<PersonStatus, string> = {
   active: '在岗',
-  noRotate: '不轮班',
+  noRotate: '锁行',
   frozen: '冻结',
 };
 const STATUS_BADGE: Record<PersonStatus, string> = {
@@ -17,7 +18,7 @@ const STATUS_BADGE: Record<PersonStatus, string> = {
 };
 const STATUS_LONG: Record<PersonStatus, string> = {
   active: '在岗，正常轮班和联动',
-  noRotate: '在岗，不参与轮班滚动和自动联动',
+  noRotate: '在岗，锁行（生成下一轮时留在原行），但参与联动换班',
   frozen: '冻结（暂时不排，如休产假）',
 };
 
@@ -210,7 +211,7 @@ export function PeoplePage({ data }: { data: AppData }) {
             </div>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span className="muted">姓名</span>
-              <input className="input" value={selected.name} onChange={(e) => updatePerson(selected.id, { name: e.target.value })} />
+              <CommitInput key={selected.id + '-name'} value={selected.name} onCommit={(v) => v.trim() && updatePerson(selected.id, { name: v.trim() })} />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span className="muted">级别</span>
@@ -237,12 +238,33 @@ export function PeoplePage({ data }: { data: AppData }) {
             {shiftPicker('禁止上这些班', selected.bannedShifts, (v) => updatePerson(selected.id, { bannedShifts: v }))}
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span className="muted">备注</span>
-              <input className="input" value={selected.note} onChange={(e) => updatePerson(selected.id, { note: e.target.value })} />
+              <CommitInput key={selected.id + '-note'} value={selected.note ?? ''} placeholder="输完点别处或按回车保存" onCommit={(v) => updatePerson(selected.id, { note: v })} />
             </label>
             <div className="menu-note">改级别、状态、特例只影响之后的排班和调班，已经排好的班不会被改动。</div>
           </section>
         )}
       </div>
     </>
+  );
+}
+
+// 输入框先在本地改，离开输入框或按回车才保存。
+// 中文输入法拼字时会连续触发很多次输入事件，每次都保存会打断输入法，导致打不进字
+function CommitInput({ value, onCommit, placeholder }: { value: string; onCommit(v: string): void; placeholder?: string }) {
+  const [text, setText] = useState(value);
+  const commit = () => {
+    if (text !== value) onCommit(text);
+  };
+  return (
+    <input
+      className="input"
+      value={text}
+      placeholder={placeholder}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) commit();
+      }}
+    />
   );
 }

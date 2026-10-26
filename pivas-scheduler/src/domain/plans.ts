@@ -59,7 +59,7 @@ interface SearchOptions {
 
 // 当前排班里这个人当天能不能被拉进链条：能接 target 吗（只看级别和人员特例）
 function eligible(person: Person, target: ShiftType): string {
-  if (person.status !== 'active') return '不参与轮班和联动';
+  if (person.status === 'frozen') return '已冻结，暂时不排班';
   return canPersonWork(person, target);
 }
 
@@ -84,7 +84,16 @@ export function findLeavePlans(opts: SearchOptions): PlanSearchResult {
     return i < 0 ? priority.length : i;
   };
 
-  const others = ctx.people.filter((p) => p.id !== requesterId);
+  // 同一天已经确认过的调休方案里的人（申请人和顶班链上的人）在这一天已排定，锁住不再参与新的方案，
+  // 否则同一个人会被重复调度，两个方案互相覆盖
+  const lockedBy = new Map<PersonId, string>();
+  for (const cs of ctx.data.changes) {
+    if (cs.undone || cs.kind !== 'leave' || cs.roundId !== ctx.round.id) continue;
+    for (const ch of cs.changes) {
+      if (ch.date === date && ch.personId !== requesterId) lockedBy.set(ch.personId, cs.title);
+    }
+  }
+  const others = ctx.people.filter((p) => p.id !== requesterId && !lockedBy.has(p.id));
   // 链条末端：当天调休 / 补休，或者删除班次留下的空白格
   const freePeople = others.filter((p) => {
     const v = valueOf(p.id);
@@ -119,6 +128,10 @@ export function findLeavePlans(opts: SearchOptions): PlanSearchResult {
     if (excluded.length < MAX_EXCLUDED && !excluded.some((e) => e.personId === personId)) excluded.push({ personId, reason });
   };
   let checks = 0;
+  for (const [pid, title] of lockedBy) {
+    const name = ctx.data.people.find((p) => p.id === pid)?.name ?? '';
+    exclude(pid, `${name}：当天已在“${title}”里排定，不再参与其他调休方案`);
+  }
 
   const firstReason = (vs: Violation[]) => vs[0]?.message ?? '';
   const peopleById = new Map(ctx.data.people.map((p) => [p.id, p]));

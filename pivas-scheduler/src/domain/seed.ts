@@ -67,8 +67,8 @@ export function createDefaultShifts(): ShiftType[] {
 
 // 需求里点名的人员特例；导入时第一次出现这些人就按这里设置，之后在人员页里改
 export const DEFAULT_PERSON_RULES: Record<string, { status: Person['status']; only?: string[]; banned?: string[]; note: string }> = {
-  方海利: { status: 'noRotate', only: ['QA'], note: '不参与轮班' },
-  代安然: { status: 'noRotate', banned: ['T'], note: '不参与轮班，不上 T' },
+  方海利: { status: 'noRotate', note: '锁行' },
+  代安然: { status: 'noRotate', banned: ['T'], note: '锁行，不上 T' },
 };
 
 function buildShifts(): ShiftType[] {
@@ -94,13 +94,13 @@ const PEOPLE_ROWS: [string, string, Person['status'], string, string?][] = [
   ['杨帆', 'L1', 'active', '2(5) 3-7 3 3-2 休 休 3-1 2(3) 3 休 3-3 3-3 2(4) 休'],
   ['赵琳', 'L2', 'active', 'Z 4-4 2(1) 休 休 Z 2(2) 3* 4-4 休 Z 2(1) 休 2(1)'],
   ['孙浩', 'L2', 'active', '4-4 Z 休 2(1) 2(2) 休 Z 4-4 休 2(1) 4-4 休 Z 2(2)'],
-  ['方海利', 'L2', 'noRotate', 'QA QA QA QA QA 休 休 QA QA QA QA QA 休 休', '只上 QA'],
+  ['方海利', 'L2', 'noRotate', 'QA QA QA QA QA 休 休 QA QA QA QA QA 休 休', '锁行'],
   ['吴迪', 'L3', 'active', '3 2(6) 3-2 休 3-3 3 休 3*-1 3 2(3) 休 3-1 3-5 休'],
   ['郑悦', 'L3', 'active', '帮夜 休 帮夜 帮夜 休 休 3 3-2 3*-1 休 2(4) 调休 3-3 休'],
   ['冯凯', 'L3', 'active', '3-1 3*-1 休 3-3 2(6) 3-2 休 3 3* 3-1 休 调休 3 休'],
   ['何蕾', 'L4', 'active', 'A B 休 C A 休 休 A D 休 B T 休 A'],
   ['许诺', 'L4', 'active', 'B A T 休 D C 休 C A B 休 D T 休'],
-  ['代安然', 'L4', 'noRotate', 'A 休 休 A 休 休 休 休 A 休 休 休 休 休', '只上 A，不上 T'],
+  ['代安然', 'L4', 'noRotate', 'A 休 休 A 休 休 休 休 A 休 休 休 休 休', '锁行，不上 T'],
 ];
 
 export function createSeedData(): AppData {
@@ -113,7 +113,7 @@ export function createSeedData(): AppData {
     levelId,
     order: i + 1,
     status,
-    onlyShifts: name === '方海利' ? [shiftByName.get('QA')!] : name === '代安然' ? [shiftByName.get('A')!] : [],
+    onlyShifts: name === '代安然' ? [shiftByName.get('A')!] : [],
     bannedShifts: name === '代安然' ? [shiftByName.get('T')!] : [],
     note: note ?? '',
   }));

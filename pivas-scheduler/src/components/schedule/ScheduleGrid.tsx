@@ -202,7 +202,7 @@ export function ScheduleGrid({ data, view }: { data: AppData; view: ScheduleView
                   <div className="fx">{view.rowNumber.get(person.id)}</div>
                   <div className="fx name" style={g.level.nameColor ? { color: g.level.nameColor } : undefined} title={levelLabel(g.level)}>
                     {person.name}
-                    {person.status !== 'active' && <span className="person-tag">{person.status === 'noRotate' ? '不轮班' : '冻结'}</span>}
+                    {person.status !== 'active' && <span className="person-tag">{person.status === 'noRotate' ? '锁行' : '冻结'}</span>}
                   </div>
                   {view.dates.map((date, dayIndex) => {
                     const key = cellKey(person.id, date);

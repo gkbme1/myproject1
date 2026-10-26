@@ -110,7 +110,31 @@ describe('调休方案', () => {
     expect([...steps].sort((a, b) => a - b)).toEqual(steps);
   });
 
-  it('药师的 A 班当天没人空闲时，能找到多人联动方案', () => {
+  it('同一天已确认的调休方案里的人被锁住，不会出现在后面的方案里', () => {
+    const data = createSeedData();
+    const leave = shiftByName(data, '调休').id;
+    const zhang = person(data, '张敏');
+    const first = findLeavePlans({ ctx: buildRuleContext(data), requesterId: zhang.id, dayIndex: 11, leaveShiftId: leave });
+    const plan = first.plans[0];
+    data.changes.push({ ...makeChangeSet(data.currentRoundId, 'leave', '张敏 10/30 调休', plan.changes) });
+    const involved = new Set(plan.changes.map((c) => c.personId));
+
+    const yang = person(data, '杨帆'); // 同一天另一个人申请调休
+    const second = findLeavePlans({ ctx: buildRuleContext(data), requesterId: yang.id, dayIndex: 11, leaveShiftId: leave });
+    for (const p of second.plans) {
+      for (const c of p.changes.slice(1)) expect(involved.has(c.personId)).toBe(false);
+    }
+    expect(second.excluded.some((e) => e.reason.includes('已在'))).toBe(true);
+  });
+
+  it('锁行的人照常参与联动', () => {
+    const data = createSeedData();
+    const fang = person(data, '方海利');
+    expect(fang.status).toBe('noRotate');
+    expect(fang.onlyShifts).toEqual([]);
+  });
+
+    it('药师的 A 班当天没人空闲时，能找到多人联动方案', () => {
     const data = createSeedData();
     const ctx = buildRuleContext(data);
     const he = person(data, '何蕾');

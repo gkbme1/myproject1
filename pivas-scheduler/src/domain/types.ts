@@ -41,6 +41,7 @@ export interface ShiftType {
   builtIn: boolean; // 系统自带的班次不能删除，只能改属性
 }
 
+// active=正常；noRotate=锁行（生成下一轮时留在原行，但照常参与调休联动）；frozen=冻结（暂时不排）
 export type PersonStatus = 'active' | 'noRotate' | 'frozen';
 
 export interface Person {
